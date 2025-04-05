@@ -36,7 +36,8 @@ struct park {
 struct ride {
     // The name of the ride
     char name[MAX_SIZE];
-    // The type of the ride i.e. ROLLER_COASTER, CAROUSEL, FERRIS_WHEEL, BUMPER_CARS, INVALID
+    // The type of the ride i.e. ROLLER_COASTER, CAROUSEL,
+    // FERRIS_WHEEL, BUMPER_CARS, INVALID
     enum ride_type type;
     // The number of riders the ride can hold
     int rider_capacity;
@@ -87,3 +88,4 @@ void command_loop(struct park *park);
 void add_ride(struct park *park);
 void add_visitor(struct park *park);
 void print_park(struct park *park);
+void print_visitor(struct visitor *visitor);

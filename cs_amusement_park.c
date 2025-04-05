@@ -101,6 +101,8 @@ void command_loop(struct park *park) {
             } else if (second_command == 'v') {
                 add_visitor(park);
             }
+        } else if (command == 'p') {
+            print_park(park);
         }
         printf("Enter command: ");
     }
@@ -164,9 +166,44 @@ void add_visitor(struct park *park) {
 //      park - a pointer to the park
 // Returns: None
 void print_park(struct park *park) {
-    // TODO: Replace this with your code
-    printf("Print park not yet implemented\n");
-    return;
+    print_welcome_message(park->name);
+    if (park->rides != NULL && park->visitors != NULL) {
+        struct ride *current_ride = park->rides;
+        printf("Rides:\n");
+        while (current_ride != NULL) {
+            print_ride(current_ride);
+            current_ride = current_ride->next;
+        }
+        struct visitor *current_visitor = park->visitors;
+        printf("Visitors:\n");
+        while (current_visitor != NULL) {
+            print_visitor(current_visitor);
+            current_visitor = current_visitor->next;
+        }
+    } else if (park->rides == NULL && park->visitors == NULL) {
+        printf("The amusement park is empty!\n");
+    } else {
+        if (park->rides == NULL) {
+            printf("Rides:\n");
+            printf("  No rides!\n");
+            struct visitor *current_visitor = park->visitors;
+            printf("Visitors:\n");
+            while (current_visitor != NULL) {
+                print_visitor(current_visitor);
+                current_visitor = current_visitor->next;
+            }
+        } else if (park->visitors == NULL) {
+            struct ride *current_ride = park->rides;
+            printf("Rides:\n");
+            while (current_ride != NULL) {
+                print_ride(current_ride);
+                current_ride = current_ride->next;
+            }
+            printf("Visitors:\n");
+            printf("  No visitors!\n");
+        }
+    }
+    printf("\n");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -264,6 +301,10 @@ void print_ride(struct ride *ride) {
             curr_visitor = curr_visitor->next;
         }
     }
+}
+
+void print_visitor(struct visitor *visitor) {
+    printf("  %s (%.2lfcm)\n", visitor->name, visitor->height);
 }
 
 // Scan in the a name string into the provided buffer, placing
