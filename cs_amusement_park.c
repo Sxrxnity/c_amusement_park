@@ -1,7 +1,7 @@
 // CS Amusement Park
 // cs_amusement_park.c
 // Written by <Danny Sun>, <z5691331>
-// on <2025>
+// on <03/04/2025>
 
 ////////////////////////////////////////////////////////////////////////////////
 // Provided Libraries
@@ -88,9 +88,22 @@ struct ride *create_ride(char name[MAX_SIZE], enum ride_type type) {
 //     park - a pointer to the park
 // Returns: None
 void command_loop(struct park *park) {
-    // TODO: Replace this with your code
-    printf("Command loop not yet implemented\n");
-    return;
+    char command;
+    printf("Enter command: ");
+    while (scanf(" %c", &command) == 1) {
+        if (command == '?') {
+            print_usage();
+        } else if (command == 'a') {
+            char second_command;
+            scanf(" %c", &second_command);
+            if (second_command == 'r') {
+                add_ride(park);
+            } else if (second_command == 'v') {
+                add_visitor(park);
+            }
+        }
+        printf("Enter command: ");
+    }
 }
 
 // Stage 1.3
@@ -99,9 +112,21 @@ void command_loop(struct park *park) {
 //      park - a pointer to the park
 // Returns: None
 void add_ride(struct park *park) {
-    // TODO: Replace this with your code
-    printf("Add ride not yet implemented\n");
-    return;
+    char name[MAX_SIZE];
+    scan_name(name);
+    enum ride_type type = scan_type();
+
+    if (park->rides == NULL) {
+        park->rides = create_ride(name, type);
+    } else {
+        struct ride *current = park->rides;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = create_ride(name, type);
+    }
+    printf("Ride: '%s' added!\n", name);
+
 }
 
 // Stage 1.3
@@ -110,9 +135,27 @@ void add_ride(struct park *park) {
 //      park - a pointer to the park
 // Returns: None
 void add_visitor(struct park *park) {
-    // TODO: Replace this with your code
-    printf("Add visitor not yet implemented\n");
-    return;
+    char name[MAX_SIZE];
+    scan_name(name);
+    double height;
+    scanf(" %lf", &height);
+
+    if (height < 50 || height > 250) {
+        printf("ERROR: Height must be between 50 and 250.\n");
+        return;
+    }
+
+    if (park->visitors == NULL) {
+        park->visitors = create_visitor(name, height);
+    } else {
+        struct visitor *current = park->visitors;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = create_visitor(name, height);
+    }
+    printf("Visitor: '%s' has entered the amusement park!\n", name);
+    park->total_visitors++;
 }
 
 // Stage 1.4
