@@ -118,9 +118,18 @@ void add_ride(struct park *park) {
     scan_name(name);
     enum ride_type type = scan_type();
 
+    if (type == INVALID) {
+        printf("ERROR: Invalid ride type.\n");
+        return;
+    }
+
     if (park->rides == NULL) {
         park->rides = create_ride(name, type);
     } else {
+        if (is_existing_ride(park, name)) {
+            printf("ERROR: '%s' already exists.\n", name);
+            return;
+        }
         struct ride *current = park->rides;
         while (current->next != NULL) {
             current = current->next;
@@ -145,11 +154,19 @@ void add_visitor(struct park *park) {
     if (height < 50 || height > 250) {
         printf("ERROR: Height must be between 50 and 250.\n");
         return;
+    } else if (park->total_visitors == MAX_VISITORS) {
+        printf("ERROR: Cannot add another visitor to the park. ");
+        printf("The park is at capacity.\n");
+        return;
     }
 
     if (park->visitors == NULL) {
         park->visitors = create_visitor(name, height);
     } else {
+        if (is_existing_visitor(park, name)) {
+            printf("ERROR: '%s' already exists.\n", name);
+            return;
+        }
         struct visitor *current = park->visitors;
         while (current->next != NULL) {
             current = current->next;
@@ -204,6 +221,35 @@ void print_park(struct park *park) {
         }
     }
     printf("\n");
+}
+
+int is_existing_ride(struct park *park, char name[MAX_SIZE]) {
+    struct ride *current = park->rides;
+    if (strcmp(current->name, name) == 0) {
+        return TRUE;
+    }
+    while (current->next != NULL) {
+        if (strcmp(current->name, name) == 0) {
+            return TRUE;;
+        }
+        current = current->next;
+    }
+    return FALSE;
+}
+
+//checks a given visitor name against the list of visitors in the park
+int is_existing_visitor(struct park *park, char name[MAX_SIZE]) {
+    struct visitor *current = park->visitors;
+    if (strcmp(current->name, name) == 0) {
+        return TRUE;
+    }
+    while (current->next != NULL) {
+        if (strcmp(current->name, name) == 0) {
+            return TRUE;
+        }
+        current = current->next;
+    }
+    return FALSE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

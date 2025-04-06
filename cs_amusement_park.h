@@ -11,6 +11,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Your constants
 ////////////////////////////////////////////////////////////////////////////////
+#define FALSE 0
+#define TRUE 1
+
+#define MAX_VISITORS 40
 
 ////////////////////////////////////////////////////////////////////////////////
 // Provided Enums
@@ -89,3 +93,6 @@ void add_ride(struct park *park);
 void add_visitor(struct park *park);
 void print_park(struct park *park);
 void print_visitor(struct visitor *visitor);
+
+int is_existing_ride(struct park *park, char name[MAX_SIZE]);
+int is_existing_visitor(struct park *park, char name[MAX_SIZE]);
