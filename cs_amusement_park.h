@@ -14,6 +14,15 @@
 #define FALSE 0
 #define TRUE 1
 
+#define HELP '?'
+#define ADD 'a'
+#define RIDE 'r'
+#define VISITOR 'v'
+#define PRINT 'p'
+
+#define MIN_VISITOR_HEIGHT 50
+#define MAX_VISITOR_HEIGHT 250
+
 #define MAX_VISITORS 40
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -70,6 +79,7 @@ struct visitor {
 void print_usage(void);
 void scan_name(char name[MAX_SIZE]);
 void print_ride(struct ride *ride);
+void print_visitor(struct visitor *visitor);
 enum ride_type scan_type(void);
 void print_welcome_message(char name[MAX_SIZE]);
 
@@ -91,8 +101,24 @@ struct ride *create_ride(char name[MAX_SIZE], enum ride_type type);
 void command_loop(struct park *park);
 void add_ride(struct park *park);
 void add_visitor(struct park *park);
-void print_park(struct park *park);
-void print_visitor(struct visitor *visitor);
 
-int is_existing_ride(struct park *park, char name[MAX_SIZE]);
-int is_existing_visitor(struct park *park, char name[MAX_SIZE]);
+void print_all_rides(struct ride *first_ride);
+void print_all_visitors(struct visitor *first_visitor);
+void print_park(struct park *park);
+
+// Stage 2
+
+// Stage 3
+
+// Stage 4
+
+// Stage 5
+
+// Helper functions
+int is_existing_ride(struct ride *first_ride, char name[MAX_SIZE]);
+int is_existing_visitor(struct visitor *first_visitor, char name[MAX_SIZE]);
+
+int check_type_invalid(enum ride_type type);
+
+int visitor_height_valid(double height);
+int park_is_full(int total_visitors);

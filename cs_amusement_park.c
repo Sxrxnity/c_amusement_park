@@ -7,18 +7,24 @@
 // Provided Libraries
 ////////////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdlib.h>
 
 #include "cs_amusement_park.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Your libraries
 ////////////////////////////////////////////////////////////////////////////////
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // Function Definitions
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// BEGIN STAGE 1
 ////////////////////////////////////////////////////////////////////////////////
 
 // Stage 1.1
@@ -91,17 +97,17 @@ void command_loop(struct park *park) {
     char command;
     printf("Enter command: ");
     while (scanf(" %c", &command) == 1) {
-        if (command == '?') {
+        if (command == HELP) {
             print_usage();
-        } else if (command == 'a') {
+        } else if (command == ADD) {
             char second_command;
             scanf(" %c", &second_command);
-            if (second_command == 'r') {
+            if (second_command == RIDE) {
                 add_ride(park);
-            } else if (second_command == 'v') {
+            } else if (second_command == VISITOR) {
                 add_visitor(park);
             }
-        } else if (command == 'p') {
+        } else if (command == PRINT) {
             print_park(park);
         }
         printf("Enter command: ");
@@ -118,15 +124,14 @@ void add_ride(struct park *park) {
     scan_name(name);
     enum ride_type type = scan_type();
 
-    if (type == INVALID) {
-        printf("ERROR: Invalid ride type.\n");
+    if (check_type_invalid(type) == TRUE) {
         return;
     }
 
     if (park->rides == NULL) {
         park->rides = create_ride(name, type);
     } else {
-        if (is_existing_ride(park, name)) {
+        if (is_existing_ride(park->rides, name) == TRUE) {
             printf("ERROR: '%s' already exists.\n", name);
             return;
         }
@@ -151,19 +156,15 @@ void add_visitor(struct park *park) {
     double height;
     scanf(" %lf", &height);
 
-    if (height < 50 || height > 250) {
-        printf("ERROR: Height must be between 50 and 250.\n");
-        return;
-    } else if (park->total_visitors == MAX_VISITORS) {
-        printf("ERROR: Cannot add another visitor to the park. ");
-        printf("The park is at capacity.\n");
+    if (visitor_height_valid(height) == FALSE ||
+        park_is_full(park->total_visitors) == TRUE) {
         return;
     }
 
     if (park->visitors == NULL) {
         park->visitors = create_visitor(name, height);
     } else {
-        if (is_existing_visitor(park, name)) {
+        if (is_existing_visitor(park->visitors, name) == TRUE) {
             printf("ERROR: '%s' already exists.\n", name);
             return;
         }
@@ -177,6 +178,26 @@ void add_visitor(struct park *park) {
     park->total_visitors++;
 }
 
+// Removes the bulky code for printing rides from the print_park function
+void print_all_rides(struct ride *first_ride) {
+    struct ride *current_ride = first_ride;
+    printf("Rides:\n");
+    while (current_ride != NULL) {
+        print_ride(current_ride);
+        current_ride = current_ride->next;
+    }
+}
+
+// Removes the bulky code for printing visitors from the print_park function
+void print_all_visitors(struct visitor *first_visitor) {
+    struct visitor *current_visitor = first_visitor;
+    printf("Visitors:\n");
+    while (current_visitor != NULL) {
+        print_visitor(current_visitor);
+        current_visitor = current_visitor->next;
+    }
+}
+
 // Stage 1.4
 // Function to print the park
 // Params:
@@ -185,61 +206,75 @@ void add_visitor(struct park *park) {
 void print_park(struct park *park) {
     print_welcome_message(park->name);
     if (park->rides != NULL && park->visitors != NULL) {
-        struct ride *current_ride = park->rides;
-        printf("Rides:\n");
-        while (current_ride != NULL) {
-            print_ride(current_ride);
-            current_ride = current_ride->next;
-        }
-        struct visitor *current_visitor = park->visitors;
-        printf("Visitors:\n");
-        while (current_visitor != NULL) {
-            print_visitor(current_visitor);
-            current_visitor = current_visitor->next;
-        }
+        print_all_rides(park->rides);
+        print_all_visitors(park->visitors);
     } else if (park->rides == NULL && park->visitors == NULL) {
         printf("The amusement park is empty!\n");
     } else {
         if (park->rides == NULL) {
-            printf("Rides:\n");
-            printf("  No rides!\n");
-            struct visitor *current_visitor = park->visitors;
-            printf("Visitors:\n");
-            while (current_visitor != NULL) {
-                print_visitor(current_visitor);
-                current_visitor = current_visitor->next;
-            }
+            printf("Rides:\n  No rides!\n");
+            print_all_visitors(park->visitors);
         } else if (park->visitors == NULL) {
-            struct ride *current_ride = park->rides;
-            printf("Rides:\n");
-            while (current_ride != NULL) {
-                print_ride(current_ride);
-                current_ride = current_ride->next;
-            }
-            printf("Visitors:\n");
-            printf("  No visitors!\n");
+            print_all_rides(park->rides);
+            printf("Visitors:\n  No visitors!\n");
         }
     }
     printf("\n");
 }
 
-int is_existing_ride(struct park *park, char name[MAX_SIZE]) {
-    struct ride *current = park->rides;
-    if (strcmp(current->name, name) == 0) {
-        return TRUE;
-    }
-    while (current->next != NULL) {
-        if (strcmp(current->name, name) == 0) {
-            return TRUE;;
-        }
-        current = current->next;
-    }
-    return FALSE;
-}
+////////////////////////////////////////////////////////////////////////////////
+// END STAGE 1
+////////////////////////////////////////////////////////////////////////////////
 
-//checks a given visitor name against the list of visitors in the park
-int is_existing_visitor(struct park *park, char name[MAX_SIZE]) {
-    struct visitor *current = park->visitors;
+
+
+////////////////////////////////////////////////////////////////////////////////
+// BEGIN STAGE 2
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// END STAGE 2
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// BEGIN STAGE 3
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// END STAGE 3
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// BEGIN STAGE 4
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// END STAGE 4
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// BEGIN STAGE 5
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// END STAGE 5
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// BEGIN HELPERS
+////////////////////////////////////////////////////////////////////////////////
+
+// Checks a given ride name against the list of rides in the park
+int is_existing_ride(struct ride *first_ride, char name[MAX_SIZE]) {
+    struct ride *current = first_ride;
     if (strcmp(current->name, name) == 0) {
         return TRUE;
     }
@@ -251,6 +286,58 @@ int is_existing_visitor(struct park *park, char name[MAX_SIZE]) {
     }
     return FALSE;
 }
+
+// Checks a given visitor name against the list of visitors in the park
+int is_existing_visitor(struct visitor *first_visitor, char name[MAX_SIZE]) {
+    struct visitor *current = first_visitor;
+    if (strcmp(current->name, name) == 0) {
+        return TRUE;
+    }
+    while (current->next != NULL) {
+        if (strcmp(current->name, name) == 0) {
+            return TRUE;
+        }
+        current = current->next;
+    }
+    return FALSE;
+}
+
+// Checks if the given ride type is invalid
+int check_type_invalid(enum ride_type type) {
+    if (type == INVALID) {
+        printf("ERROR: Invalid ride type.\n");
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
+// Checks if the given visitor height is valid
+int visitor_height_valid(double height) {
+    if (height < MIN_VISITOR_HEIGHT || height > MAX_VISITOR_HEIGHT) {
+        printf("ERROR: Height must be between 50 and 250.\n");
+        return FALSE;
+    } else {
+        return TRUE;
+    }
+}
+
+// Returns a flag indicating if the park is full
+int park_is_full(int total_visitors) {
+    if (total_visitors == MAX_VISITORS) {
+        printf("ERROR: Cannot add another visitor to the park. ");
+        printf("The park is at capacity.\n");
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// END HELPERS
+////////////////////////////////////////////////////////////////////////////////
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Providing function definitions
