@@ -421,8 +421,7 @@ void remove_visitor_from_roaming(struct park *park, char name[MAX_SIZE]) {
 
     while (current != NULL) {
         if (strcmp(current->name, name) == 0) {
-            // Only one visitor in the park
-            if (previous == NULL && list_length == 1) {
+            if (list_length == 1) {
                 park->visitors = NULL;
             } else if (previous == NULL && list_length > 1) {
                 park->visitors = current->next;
