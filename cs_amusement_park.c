@@ -105,6 +105,8 @@ void command_loop(struct park *park) {
             insert_ride(park);
         } else if (command == ADD_V_TO_R) {
             add_visitor_to_ride(park);
+        } else if (command == REMOVE_V_FROM_R) {
+            remove_visitor_from_ride(park);
         } else if (command == PRINT) {
             print_park(park);
         }
@@ -285,7 +287,7 @@ void add_visitor_to_ride(struct park *park) {
     scan_name(visitor_name);
 
     struct ride *ride = retrieve_ride(park->rides, ride_name);
-    struct visitor *visitor = retrieve_visitor(park, visitor_name);
+    struct visitor *visitor = retrieve_visitor(park->visitors, visitor_name);
 
     if (valid_ride_and_visitor(ride, visitor,
         ride_name, visitor_name) == TRUE) {
@@ -304,6 +306,64 @@ void add_visitor_to_ride(struct park *park) {
     }
 }
 
+// Removes a visitor from the queue of a specific ride and
+// puts them back in roaming
+void remove_visitor_from_ride(struct park *park) {
+    char visitor_name[MAX_SIZE];
+    scan_name(visitor_name);
+
+    struct ride *ride = find_ride_containing(park, visitor_name);
+    if (ride == NULL) {
+        printf("ERROR: Visitor '%s' not found in any queue.\n", visitor_name);
+        return;
+    }
+
+    struct visitor *visitor = retrieve_visitor(ride->queue, visitor_name);
+    int list_length = calculate_list_length(ride->queue);
+    if (visitor == NULL) {
+        printf("ERROR: Visitor '%s' not found in any queue.\n", visitor_name);
+        return;
+    }
+
+    struct visitor *previous = NULL;
+    struct visitor *current = ride->queue;
+    if (list_length == 1) {
+        ride->queue = NULL;
+        reappend_visitor(park, visitor);
+    } else if (strcmp(current->name, visitor_name) == 0) {
+        ride->queue = current->next;
+        current->next = NULL;
+        reappend_visitor(park, visitor);
+    } else {
+        while (current != NULL) {
+            if (strcmp(current->name, visitor_name) == 0) {
+                previous->next = current->next;
+                current->next = NULL;
+                reappend_visitor(park, visitor);
+                break;
+            }
+            previous = current;
+            current = current->next;
+        }
+    }
+}
+
+struct ride *find_ride_containing(struct park *park,
+    char visitor_name[MAX_SIZE]) {
+    struct ride *current_ride = park->rides;
+    while (current_ride != NULL) {
+        struct visitor *current_visitor = current_ride->queue;
+        while (current_visitor != NULL) {
+            if (strcmp(current_visitor->name, visitor_name) == 0) {
+                return current_ride;
+            }
+            current_visitor = current_visitor->next;
+        }
+        current_ride = current_ride->next;
+    }
+    return NULL;
+}
+
 // Retrieves the correct ride to add a visitor to
 struct ride *retrieve_ride(struct ride *ride, char name[MAX_SIZE]) {
     struct ride *current = ride;
@@ -318,8 +378,8 @@ struct ride *retrieve_ride(struct ride *ride, char name[MAX_SIZE]) {
 
 // Retrieves the correct visitor to add to a ride queue
 // and removes them from roaming
-struct visitor *retrieve_visitor(struct park *park, char name[MAX_SIZE]) {
-    struct visitor *current = park->visitors;
+struct visitor *retrieve_visitor(struct visitor *visitor, char name[MAX_SIZE]) {
+    struct visitor *current = visitor;
     while (current != NULL) {
         if (strcmp(current->name, name) == 0) {
             return current;
@@ -353,6 +413,44 @@ int valid_ride_and_visitor(struct ride *ride, struct visitor *visitor,
     return TRUE;
 }
 
+// Removes a visitor from roaming the park
+void remove_visitor_from_roaming(struct park *park, char name[MAX_SIZE]) {
+    struct visitor *previous = NULL;
+    struct visitor *current = park->visitors;
+    int list_length = calculate_list_length(park->visitors);
+
+    while (current != NULL) {
+        if (strcmp(current->name, name) == 0) {
+            // Only one visitor in the park
+            if (previous == NULL && list_length == 1) {
+                park->visitors = NULL;
+            } else if (previous == NULL && list_length > 1) {
+                park->visitors = current->next;
+            } else {
+                previous->next = current->next;
+            }
+            current->next = NULL;
+            break;
+        }
+        previous = current;
+        current = current->next;
+    }
+}
+
+// Reappends a visitor to the park after they have been removed from a ride
+void reappend_visitor(struct park *park, struct visitor *visitor) {
+    if (park->visitors == NULL) {
+        park->visitors = visitor;
+    } else {
+        struct visitor *current = park->visitors;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = visitor;
+    }
+    printf("Visitor: '%s' has been removed ", visitor->name);
+    printf("from their ride queue and is now roaming the park.\n");
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // END STAGE 2
@@ -416,29 +514,6 @@ int is_existing_visitor(struct visitor *first_visitor, char name[MAX_SIZE]) {
         current = current->next;
     }
     return FALSE;
-}
-
-// Removes a visitor from roaming the park
-void remove_visitor_from_roaming(struct park *park, char name[MAX_SIZE]) {
-    struct visitor *previous = NULL;
-    struct visitor *current = park->visitors;
-    int list_length = calculate_list_length(park->visitors);
-
-    while (current != NULL) {
-        if (strcmp(current->name, name) == 0) {
-            // Only one visitor in the park
-            if (previous == NULL && list_length == 1) {
-                park->visitors = NULL;
-            } else if (previous == NULL && list_length > 1) {
-                park->visitors = current->next;
-            } else {
-                previous->next = current->next;
-            }
-            current->next = NULL;
-        }
-        previous = current;
-        current = current->next;
-    }
 }
 
 // Checks if the given ride type is invalid

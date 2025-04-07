@@ -14,18 +14,19 @@
 #define FALSE 0
 #define TRUE 1
 
-#define HELP '?'
-#define APPEND 'a'
-#define INSERT 'i'
-#define RIDE 'r'
-#define VISITOR 'v'
-#define ADD_V_TO_R 'j'
-#define PRINT 'p'
+#define HELP               '?'
+#define APPEND             'a'
+#define INSERT             'i'
+#define RIDE               'r'
+#define VISITOR            'v'
+#define ADD_V_TO_R         'j'
+#define REMOVE_V_FROM_R   'd'
+#define PRINT              'p'
 
 #define MIN_VISITOR_HEIGHT 50
 #define MAX_VISITOR_HEIGHT 250
 
-#define MAX_VISITORS 40
+#define MAX_VISITORS       40
 
 ////////////////////////////////////////////////////////////////////////////////
 // Provided Enums
@@ -112,11 +113,16 @@ void print_park(struct park *park);
 // Stage 2
 void insert_ride(struct park *park);
 void add_visitor_to_ride(struct park *park);
+void remove_visitor_from_ride(struct park *park);
+struct ride *find_ride_containing(struct park *park,
+    char visitor_name[MAX_SIZE]);
 
 struct ride *retrieve_ride(struct ride *ride, char name[MAX_SIZE]);
-struct visitor *retrieve_visitor(struct park *park, char name[MAX_SIZE]);
+struct visitor *retrieve_visitor(struct visitor *visitor, char name[MAX_SIZE]);
 int valid_ride_and_visitor(struct ride *ride, struct visitor *visitor,
     char ride_name[MAX_SIZE], char visitor_name[MAX_SIZE]);
+void remove_visitor_from_roaming(struct park *park, char visitor_name[MAX_SIZE]);
+void reappend_visitor(struct park *park, struct visitor *visitor);
 
 // Stage 3
 
@@ -127,7 +133,6 @@ int valid_ride_and_visitor(struct ride *ride, struct visitor *visitor,
 // Helper functions
 int is_existing_ride(struct ride *first_ride, char name[MAX_SIZE]);
 int is_existing_visitor(struct visitor *first_visitor, char name[MAX_SIZE]);
-void remove_visitor_from_roaming(struct park *park, char visitor_name[MAX_SIZE]);
 
 int is_type_invalid(enum ride_type type);
 int visitor_height_valid(double height);
