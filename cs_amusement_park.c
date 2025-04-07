@@ -99,18 +99,24 @@ void command_loop(struct park *park) {
     while (scanf(" %c", &command) == 1) {
         if (command == HELP) {
             print_usage();
-        } else if (command == ADD) {
-            char second_command;
-            scanf(" %c", &second_command);
-            if (second_command == RIDE) {
-                add_ride(park);
-            } else if (second_command == VISITOR) {
-                add_visitor(park);
-            }
+        } else if (command == APPEND) {
+            add_entity(park);
+        } else if (command == INSERT) {
+            insert_ride(park);
         } else if (command == PRINT) {
             print_park(park);
         }
         printf("Enter command: ");
+    }
+}
+
+void add_entity(struct park *park) {
+    char second_command;
+    scanf(" %c", &second_command);
+    if (second_command == RIDE) {
+        append_ride(park);
+    } else if (second_command == VISITOR) {
+        append_visitor(park);
     }
 }
 
@@ -119,12 +125,12 @@ void command_loop(struct park *park) {
 // Params:
 //      park - a pointer to the park
 // Returns: None
-void add_ride(struct park *park) {
+void append_ride(struct park *park) {
     char name[MAX_SIZE];
     scan_name(name);
     enum ride_type type = scan_type();
 
-    if (check_type_invalid(type) == TRUE) {
+    if (is_type_invalid(type) == TRUE) {
         return;
     }
 
@@ -150,7 +156,7 @@ void add_ride(struct park *park) {
 // Params:
 //      park - a pointer to the park
 // Returns: None
-void add_visitor(struct park *park) {
+void append_visitor(struct park *park) {
     char name[MAX_SIZE];
     scan_name(name);
     double height;
@@ -232,6 +238,43 @@ void print_park(struct park *park) {
 // BEGIN STAGE 2
 ////////////////////////////////////////////////////////////////////////////////
 
+// Inserts a ride at a specific position in the park's ride list
+void insert_ride(struct park *park) {
+    int index;
+    scanf(" %d", &index);
+    char name[MAX_SIZE];
+    scan_name(name);
+    enum ride_type type = scan_type();
+
+    if (is_valid_index(index) == FALSE ||
+        is_type_invalid(type) == TRUE) {
+        return;
+    } else if (is_existing_ride(park->rides, name) == TRUE) {
+        printf("ERROR: a ride with name: ");
+        printf("'%s' already exists in this park.\n", name);
+        return;
+    } else {
+        struct ride *new_ride = create_ride(name, type);
+        if (park->rides == NULL) {
+            park->rides = new_ride;
+        } else if (index == 1) {
+            new_ride->next = park->rides;
+            park->rides = new_ride;
+        } else {
+            struct ride *current = park->rides;
+            int i = 1;
+            while (current->next != NULL && i < index - 1) {
+                current = current->next;
+                i++;
+            }
+            new_ride->next = current->next;
+            current->next = new_ride;
+        }
+        printf("Ride: '%s' inserted!\n", name);
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // END STAGE 2
 ////////////////////////////////////////////////////////////////////////////////
@@ -275,10 +318,7 @@ void print_park(struct park *park) {
 // Checks a given ride name against the list of rides in the park
 int is_existing_ride(struct ride *first_ride, char name[MAX_SIZE]) {
     struct ride *current = first_ride;
-    if (strcmp(current->name, name) == 0) {
-        return TRUE;
-    }
-    while (current->next != NULL) {
+    while (current != NULL) {
         if (strcmp(current->name, name) == 0) {
             return TRUE;
         }
@@ -290,11 +330,9 @@ int is_existing_ride(struct ride *first_ride, char name[MAX_SIZE]) {
 // Checks a given visitor name against the list of visitors in the park
 int is_existing_visitor(struct visitor *first_visitor, char name[MAX_SIZE]) {
     struct visitor *current = first_visitor;
-    if (strcmp(current->name, name) == 0) {
-        return TRUE;
-    }
-    while (current->next != NULL) {
+    while (current != NULL) {
         if (strcmp(current->name, name) == 0) {
+            printf("ERROR: '%s' already exists.\n", name);
             return TRUE;
         }
         current = current->next;
@@ -303,7 +341,7 @@ int is_existing_visitor(struct visitor *first_visitor, char name[MAX_SIZE]) {
 }
 
 // Checks if the given ride type is invalid
-int check_type_invalid(enum ride_type type) {
+int is_type_invalid(enum ride_type type) {
     if (type == INVALID) {
         printf("ERROR: Invalid ride type.\n");
         return TRUE;
@@ -330,6 +368,16 @@ int park_is_full(int total_visitors) {
         return TRUE;
     } else {
         return FALSE;
+    }
+}
+
+// Checks if the given insertion index is valid
+int is_valid_index(int index) {
+    if (index < 1) {
+        printf("ERROR: n must be at least 1.\n");
+        return FALSE;
+    } else {
+        return TRUE;
     }
 }
 

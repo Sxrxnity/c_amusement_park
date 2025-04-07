@@ -15,7 +15,8 @@
 #define TRUE 1
 
 #define HELP '?'
-#define ADD 'a'
+#define APPEND 'a'
+#define INSERT 'i'
 #define RIDE 'r'
 #define VISITOR 'v'
 #define PRINT 'p'
@@ -99,14 +100,16 @@ struct park *initialise_park(char name[MAX_SIZE]);
 struct visitor *create_visitor(char name[MAX_SIZE], double height);
 struct ride *create_ride(char name[MAX_SIZE], enum ride_type type);
 void command_loop(struct park *park);
-void add_ride(struct park *park);
-void add_visitor(struct park *park);
+void add_entity(struct park *park);
+void append_ride(struct park *park);
+void append_visitor(struct park *park);
 
 void print_all_rides(struct ride *first_ride);
 void print_all_visitors(struct visitor *first_visitor);
 void print_park(struct park *park);
 
 // Stage 2
+void insert_ride(struct park *park);
 
 // Stage 3
 
@@ -118,7 +121,7 @@ void print_park(struct park *park);
 int is_existing_ride(struct ride *first_ride, char name[MAX_SIZE]);
 int is_existing_visitor(struct visitor *first_visitor, char name[MAX_SIZE]);
 
-int check_type_invalid(enum ride_type type);
-
+int is_type_invalid(enum ride_type type);
 int visitor_height_valid(double height);
 int park_is_full(int total_visitors);
+int is_valid_index(int index);
