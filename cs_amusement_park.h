@@ -14,20 +14,22 @@
 #define FALSE 0
 #define TRUE 1
 
-#define HELP               '?'
-#define APPEND             'a'
-#define INSERT             'i'
-#define RIDE               'r'
-#define VISITOR            'v'
-#define ADD_V_TO_R         'j'
-#define REMOVE_V_FROM_R    'd'
-#define MOVE_V_TO_R        'm'
-#define PRINT              'p'
+#define HELP                    '?'
+#define APPEND                  'a'
+#define INSERT                  'i'
+#define RIDE                    'r'
+#define VISITOR                 'v'
+#define ADD_V_TO_R              'j'
+#define REMOVE_V_FROM_R         'd'
+#define MOVE_V_TO_R             'm'
+#define COUNT_TOTAL_VISITORS    't'
+#define COUNT_QUEUE_VISITORS    'c'
+#define PRINT                   'p'
 
-#define MIN_VISITOR_HEIGHT 50
-#define MAX_VISITOR_HEIGHT 250
+#define MIN_VISITOR_HEIGHT      50
+#define MAX_VISITOR_HEIGHT      250
 
-#define MAX_VISITORS       40
+#define MAX_VISITORS            40
 
 ////////////////////////////////////////////////////////////////////////////////
 // Provided Enums
@@ -77,6 +79,16 @@ struct visitor {
     struct visitor *next;
 };
 
+// My structs
+
+struct validate_fields {
+    struct ride *ride;
+    struct ride *target_ride;
+    struct visitor *visitor;
+    char r_name[MAX_SIZE];
+    char v_name[MAX_SIZE];
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 // Provided function prototypes
 ////////////////////////////////////////////////////////////////////////////////
@@ -117,14 +129,15 @@ void add_visitor_to_ride(struct park *park);
 void remove_visitor_from_ride(struct park *park);
 void move_visitor_to_different_ride(struct park *park);
 
-struct ride *retrieve_ride(struct ride *ride, char name[MAX_SIZE]);
-struct visitor *retrieve_visitor(struct visitor *visitor, char name[MAX_SIZE]);
-int valid_ride_and_visitor(struct ride *ride, struct visitor *visitor,
-    char ride_name[MAX_SIZE], char visitor_name[MAX_SIZE]);
-void remove_visitor_from_roaming(struct park *park, char visitor_name[MAX_SIZE]);
-void reappend_visitor(struct park *park, struct visitor *visitor);
-struct ride *find_ride_containing(struct park *park,
-    char visitor_name[MAX_SIZE]);
+int validate_action(struct park *park, char action,
+    struct validate_fields *fields);
+int validate_avtr(struct validate_fields *fields);
+int validate_mvtdr(struct validate_fields *fields);
+void add_visitor_to_queue(struct visitor **head, struct visitor *visitor);
+void remove_visitor_from_queue(struct visitor **head, char visitor_name[MAX_SIZE]);
+
+void count_total_visitors(struct park *park);
+void count_queue_visitors(struct park *park);
 
 // Stage 3
 
@@ -141,6 +154,9 @@ int visitor_height_valid(double height);
 int park_is_full(int total_visitors);
 int is_valid_index(int index);
 
+struct ride *retrieve_ride(struct ride *head, char name[MAX_SIZE]);
+struct visitor *retrieve_visitor(struct visitor *head, char name[MAX_SIZE]);
+struct ride *find_ride_containing(struct park *park, char v_name[MAX_SIZE]);
 int calculate_list_length(struct visitor *visitor);
 
 

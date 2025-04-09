@@ -109,6 +109,10 @@ void command_loop(struct park *park) {
             remove_visitor_from_ride(park);
         } else if (command == MOVE_V_TO_R) {
             move_visitor_to_different_ride(park);
+        } else if (command == COUNT_TOTAL_VISITORS) {
+            count_total_visitors(park);
+        } else if (command == COUNT_QUEUE_VISITORS) {
+            count_queue_visitors(park);
         } else if (command == PRINT) {
             print_park(park);
         }
@@ -283,200 +287,172 @@ void insert_ride(struct park *park) {
 
 // Adds a visitor to the queue of a specific ride
 void add_visitor_to_ride(struct park *park) {
-    char ride_name[MAX_SIZE];
-    char visitor_name[MAX_SIZE];
-    scan_name(ride_name);
-    scan_name(visitor_name);
+    struct validate_fields fields;
+    scan_name(fields.r_name);
+    scan_name(fields.v_name);
 
-    struct ride *ride = retrieve_ride(park->rides, ride_name);
-    struct visitor *visitor = retrieve_visitor(park->visitors, visitor_name);
+    fields.ride = retrieve_ride(park->rides, fields.r_name);
+    fields.visitor = retrieve_visitor(park->visitors, fields.v_name);
 
-    if (valid_ride_and_visitor(ride, visitor,
-        ride_name, visitor_name) == TRUE) {
-        remove_visitor_from_roaming(park, visitor_name);
-        struct visitor *current = ride->queue;
-        if (current == NULL) {
-            ride->queue = visitor;
-        } else {
-            while (current->next != NULL) {
-                current = current->next;
-            }
-            current->next = visitor;
-        }
-        printf("Visitor: '%s' has entered the queue for '%s'.\n",
-            visitor_name, ride_name);
+    int valid = validate_action(park, ADD_V_TO_R, &fields);
+    if (!valid) {
+        return;
     }
+
+    remove_visitor_from_queue(&(park->visitors), fields.v_name);
+    add_visitor_to_queue(&(fields.ride->queue), fields.visitor);
+    printf("Visitor: '%s' has entered the queue for '%s'.\n",
+        fields.v_name, fields.r_name);
 }
 
 // Removes a visitor from the queue of a specific ride and
 // puts them back in roaming
 void remove_visitor_from_ride(struct park *park) {
-    char visitor_name[MAX_SIZE];
-    scan_name(visitor_name);
+    struct validate_fields fields;
+    scan_name(fields.v_name);
 
-    struct ride *ride = find_ride_containing(park, visitor_name);
-    if (ride == NULL) {
-        printf("ERROR: Visitor '%s' not found in any queue.\n", visitor_name);
+    fields.ride = find_ride_containing(park, fields.v_name);
+    if (fields.ride == NULL) {
+        printf("ERROR: Visitor '%s' not found in any queue.\n", fields.v_name);
         return;
     }
 
-    struct visitor *visitor = retrieve_visitor(ride->queue, visitor_name);
-    int list_length = calculate_list_length(ride->queue);
-    if (visitor == NULL) {
-        printf("ERROR: Visitor '%s' not found in any queue.\n", visitor_name);
+    fields.visitor = retrieve_visitor(fields.ride->queue, fields.v_name);
+    if (fields.visitor == NULL) {
+        printf("ERROR: Visitor '%s' not found in any queue.\n", fields.v_name);
         return;
     }
 
-    struct visitor *previous = NULL;
-    struct visitor *current = ride->queue;
-    if (list_length == 1) {
-        ride->queue = NULL;
-        reappend_visitor(park, visitor);
-    } else if (strcmp(current->name, visitor_name) == 0) {
-        ride->queue = current->next;
-        current->next = NULL;
-        reappend_visitor(park, visitor);
-    } else {
-        while (current != NULL) {
-            if (strcmp(current->name, visitor_name) == 0) {
-                previous->next = current->next;
-                current->next = NULL;
-                reappend_visitor(park, visitor);
-                break;
-            }
-            previous = current;
-            current = current->next;
-        }
-    }
+    remove_visitor_from_queue(&(fields.ride->queue), fields.v_name);
+    add_visitor_to_queue(&(park->visitors), fields.visitor);
+    printf("Visitor: '%s' has been removed ", fields.v_name);
+    printf("from their ride queue and is now roaming the park.\n");
 }
 
 // Moves a visitor to a different ride's queue
 void move_visitor_to_different_ride(struct park *park) {
-    char visitor_name[MAX_SIZE];
-    char ride_name[MAX_SIZE];
-    scan_name(visitor_name);
-    scan_name(ride_name);
+    struct validate_fields fields;
+    scan_name(fields.v_name);
+    scan_name(fields.r_name);
 
-    struct ride *target_ride = retrieve_ride(park->rides, ride_name);
-    if (target_ride == NULL) {
-        printf("ERROR: No ride exists with name '%s'.\n", ride_name);
+    fields.target_ride = retrieve_ride(park->rides, fields.r_name);
+    if (fields.target_ride == NULL) {
+        printf("ERROR: No ride exists with name '%s'.\n", fields.r_name);
         return;
     }
-    struct ride *current_ride = find_ride_containing(park, visitor_name);
-    struct visitor *visitor = retrieve_visitor(current_ride->queue,
-        visitor_name);
 
-    if (current_ride == target_ride) {
-        printf("ERROR: '%s' is already in the queue for '%s'.\n",
-            visitor_name, current_ride->name);
-        return;
-    } else if (visitor == NULL) {
-        printf("ERROR: No visitor with name: '%s' exists.\n", visitor_name);
-        return;
-    } else if (calculate_list_length(target_ride->queue) >=
-        target_ride->queue_capacity) {
-        printf("ERROR: The queue for '%s' is full. ", target_ride->name);
-        printf("'%s' cannot join the queue.\n", visitor_name);
-        return;
-    } else if (visitor->height < target_ride->min_height) {
-        printf("ERROR: '%s' is not tall enough to ride '%s'.\n",
-            visitor_name, target_ride->name);
-        return;
-    } else {
-        // place in new ride
-        if (target_ride->queue == NULL) {
-            target_ride->queue = visitor;
+    fields.ride = find_ride_containing(park, fields.v_name);
+    fields.visitor = NULL;
+    // checks if the visitor is roaming
+    if (fields.ride == NULL) {
+        if (retrieve_visitor(park->visitors, fields.v_name) != NULL) {
+            fields.visitor = retrieve_visitor(park->visitors, fields.v_name);
+            remove_visitor_from_queue(&(park->visitors), fields.v_name);
+            add_visitor_to_queue(&(fields.target_ride->queue), fields.visitor);
+            printf("Visitor: '%s' has been moved to the queue for '%s'.\n",
+                fields.v_name, fields.target_ride->name);
         } else {
-            struct visitor *current = target_ride->queue;
-            while (current->next != NULL) {
-                current = current->next;
-            }
-            current->next = visitor;
+            printf("ERROR: No ride exists with name '%s'.\n", fields.r_name);
         }
-        // remove from old ride
-        struct visitor *previous = NULL;
-        struct visitor *current = current_ride->queue;
-        if (calculate_list_length(current_ride->queue) == 1) {
-            current_ride->queue = NULL;
-        } else if (current == visitor) {
-            current_ride->queue = current->next;
-        } else {
-            while (current != NULL) {
-                if (current == visitor) {
-                    previous->next = current->next;
-                    break;
-                }
-                previous = current;
-                current = current->next;
-            }
-        }
-        printf("Visitor: '%s' has been moved to the queue for '%s'.\n",
-            visitor_name, target_ride->name);
-        visitor->next = NULL;
+        return;
     }
+    fields.visitor = retrieve_visitor(fields.ride->queue, fields.v_name);
+
+    int valid = validate_action(park, MOVE_V_TO_R, &fields);
+    if (!valid) {
+        return;
+    }
+
+    remove_visitor_from_queue(&(fields.ride->queue), fields.v_name);
+    add_visitor_to_queue(&(fields.target_ride->queue), fields.visitor);
+    printf("Visitor: '%s' has been moved to the queue for '%s'.\n",
+        fields.v_name, fields.target_ride->name);
 }
 
-// Retrieves the correct ride to add a visitor to
-struct ride *retrieve_ride(struct ride *ride, char name[MAX_SIZE]) {
-    struct ride *current = ride;
-    while (current != NULL) {
-        if (strcmp(current->name, name) == 0) {
-            return current;
-        }
-        current = current->next;
+// Handles validation of actions
+int validate_action(struct park *park, char action,
+    struct validate_fields *fields) {
+    int valid = TRUE;
+
+    if (action == ADD_V_TO_R) {
+        valid = validate_avtr(fields);
+    } else if (action == MOVE_V_TO_R) {
+        valid = validate_mvtdr(fields);
     }
-    return NULL;
+    return valid;
 }
 
-// Retrieves the correct visitor to add to a ride queue
-// and removes them from roaming
-struct visitor *retrieve_visitor(struct visitor *visitor, char name[MAX_SIZE]) {
-    struct visitor *current = visitor;
-    while (current != NULL) {
-        if (strcmp(current->name, name) == 0) {
-            return current;
-        }
-        current = current->next;
-    }
-    return NULL;
-}
+// Validates the add visitor to ride function
+int validate_avtr(struct validate_fields *fields) {
 
-// Checks if the ride and visitor are valid
-int valid_ride_and_visitor(struct ride *ride, struct visitor *visitor,
-    char ride_name[MAX_SIZE], char visitor_name[MAX_SIZE]) {
-
-    if (ride == NULL) {
-        printf("ERROR: No ride exists with name '%s'.\n", ride_name);
+    if (fields->ride == NULL) {
+        printf("ERROR: No ride exists with name '%s'.\n", fields->r_name);
         return FALSE;
-    } else if (visitor == NULL) {
-        printf("ERROR: No visitor exists with name '%s'.\n", visitor_name);
+    } else if (fields->visitor == NULL) {
+        printf("ERROR: No visitor exists with name '%s'.\n", fields->v_name);
         return FALSE;
-    } else if (visitor->height < ride->min_height) {
+    } else if (fields->visitor->height < fields->ride->min_height) {
         printf("ERROR: '%s' is not tall enough to ride '%s'.\n",
-            visitor_name, ride_name);
+            fields->v_name, fields->r_name);
         return FALSE;
     }
-    int list_length = calculate_list_length(ride->queue);
-    if (list_length > ride->queue_capacity) {
-        printf("ERROR: The queue for '%s' is full. ", ride_name);
-        printf("'%s' cannot join the queue.\n", visitor_name);
+    int list_length = calculate_list_length(fields->ride->queue);
+    if (list_length > fields->ride->queue_capacity) {
+        printf("ERROR: The queue for '%s' is full. ", fields->r_name);
+        printf("'%s' cannot join the queue.\n", fields->v_name);
         return FALSE;
     }
     return TRUE;
 }
 
+// Validates the move visitor to different ride function
+int validate_mvtdr(struct validate_fields *fields) {
+
+    if (fields->ride == fields->target_ride) {
+        printf("ERROR: '%s' is already in the queue for '%s'.\n",
+            fields->v_name, fields->ride->name);
+        return FALSE;
+    } else if (fields->visitor == NULL) {
+        printf("ERROR: No visitor with name: '%s' exists.\n", fields->v_name);
+        return FALSE;
+    } else if (calculate_list_length(fields->target_ride->queue)
+        >= fields->target_ride->queue_capacity) {
+        printf("ERROR: The queue for '%s' is", fields->target_ride->name);
+        printf(" full. '%s' cannot join the queue.\n", fields->v_name);
+        return FALSE;
+    } else if (fields->visitor->height < fields->target_ride->min_height) {
+        printf("ERROR: '%s' is not tall enough to ride '%s'.\n",
+            fields->v_name, fields->target_ride->name);
+        return FALSE;
+    }
+    return TRUE;
+}
+
+// Adds a visitor to a specific queue
+void add_visitor_to_queue(struct visitor **head, struct visitor *visitor) {
+    if (*head == NULL) {
+        *head = visitor;
+    } else {
+        struct visitor *current = *head;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = visitor;
+    }
+}
+
 // Removes a visitor from roaming the park
-void remove_visitor_from_roaming(struct park *park, char name[MAX_SIZE]) {
+void remove_visitor_from_queue(struct visitor **head, char name[MAX_SIZE]) {
     struct visitor *previous = NULL;
-    struct visitor *current = park->visitors;
-    int list_length = calculate_list_length(park->visitors);
+    struct visitor *current = *head;
+    int list_length = calculate_list_length(*head);
 
     while (current != NULL) {
         if (strcmp(current->name, name) == 0) {
             if (list_length == 1) {
-                park->visitors = NULL;
+                *head = NULL;
             } else if (previous == NULL && list_length > 1) {
-                park->visitors = current->next;
+                *head = current->next;
             } else {
                 previous->next = current->next;
             }
@@ -488,37 +464,68 @@ void remove_visitor_from_roaming(struct park *park, char name[MAX_SIZE]) {
     }
 }
 
-// Reappends a visitor to the different queue
-// after they have been removed from a ride
-void reappend_visitor(struct park *park, struct visitor *visitor) {
-    if (park->visitors == NULL) {
-        park->visitors = visitor;
-    } else {
-        struct visitor *current = park->visitors;
-        while (current->next != NULL) {
-            current = current->next;
-        }
-        current->next = visitor;
-    }
-    printf("Visitor: '%s' has been removed ", visitor->name);
-    printf("from their ride queue and is now roaming the park.\n");
-}
+// Counts the number of visitors in the park
+void count_total_visitors(struct park *park) {
+    int roaming_visitors;
+    roaming_visitors = calculate_list_length(park->visitors);
 
-// Finds the ride that contains a specific visitor
-struct ride *find_ride_containing(struct park *park,
-    char visitor_name[MAX_SIZE]) {
+    int queueing_visitors = 0;
     struct ride *current_ride = park->rides;
     while (current_ride != NULL) {
-        struct visitor *current_visitor = current_ride->queue;
-        while (current_visitor != NULL) {
-            if (strcmp(current_visitor->name, visitor_name) == 0) {
-                return current_ride;
-            }
-            current_visitor = current_visitor->next;
-        }
+        queueing_visitors += calculate_list_length(current_ride->queue);
         current_ride = current_ride->next;
     }
-    return NULL;
+
+    int total_visitors = roaming_visitors + queueing_visitors;
+
+    printf("Total visitors: %d\n", total_visitors);
+    printf("Visitors walking around: %d\n", roaming_visitors);
+    printf("Visitors in queues: %d\n", queueing_visitors);
+}
+
+// Counts the number of visitors in the queue between two rides
+void count_queue_visitors(struct park *park) {
+    char first_ride[MAX_SIZE];
+    char second_ride[MAX_SIZE];
+    char direction;
+    scan_name(first_ride);
+    scan_name(second_ride);
+    scanf(" %c", &direction);
+    int count = 0;
+
+    struct ride *first = retrieve_ride(park->rides, first_ride);
+    struct ride *second = retrieve_ride(park->rides, second_ride);
+
+    if (first == NULL || second == NULL) {
+        printf("ERROR: One or both rides do not exist ");
+        printf("('%s' or '%s').\n", first_ride, second_ride);
+        return;
+    }
+
+    struct ride *start = NULL;
+    struct ride *end = NULL;
+    if (direction == '>') {
+        start = first;
+        end = second;
+    } else if (direction == '<') {
+        start = second;
+        end = first;
+    }
+
+    struct ride *current_ride = start;
+    while (TRUE) {
+        count += calculate_list_length(current_ride->queue);
+        if (current_ride == end) {
+            break;
+        }
+        if (current_ride->next == NULL) {
+            current_ride = park->rides;
+        } else {
+            current_ride = current_ride->next;
+        }
+    }
+    printf("Total visitors from '%s' to '%s': %d.\n",
+        start->name, end->name, count);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -560,6 +567,47 @@ struct ride *find_ride_containing(struct park *park,
 ////////////////////////////////////////////////////////////////////////////////
 // BEGIN HELPERS
 ////////////////////////////////////////////////////////////////////////////////
+
+// Retrieves the correct ride to add a visitor to
+struct ride *retrieve_ride(struct ride *head, char name[MAX_SIZE]) {
+    struct ride *current = head;
+    while (current != NULL) {
+        if (strcmp(current->name, name) == 0) {
+            return current;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+// Retrieves the correct visitor to add to a ride queue
+// and removes them from roaming
+struct visitor *retrieve_visitor(struct visitor *head, char name[MAX_SIZE]) {
+    struct visitor *current = head;
+    while (current != NULL) {
+        if (strcmp(current->name, name) == 0) {
+            return current;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+// Finds the ride that contains a specific visitor
+struct ride *find_ride_containing(struct park *park, char v_name[MAX_SIZE]) {
+    struct ride *current_ride = park->rides;
+    while (current_ride != NULL) {
+        struct visitor *current_visitor = current_ride->queue;
+        while (current_visitor != NULL) {
+            if (strcmp(current_visitor->name, v_name) == 0) {
+                return current_ride;
+            }
+            current_visitor = current_visitor->next;
+        }
+        current_ride = current_ride->next;
+    }
+    return NULL;
+}
 
 // Checks a given ride name against the list of rides in the park
 int is_existing_ride(struct ride *first_ride, char name[MAX_SIZE]) {
