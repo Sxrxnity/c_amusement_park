@@ -135,6 +135,8 @@ int validate_avtr(struct validate_fields *fields);
 int validate_mvtdr(struct validate_fields *fields);
 void add_visitor_to_queue(struct visitor **head, struct visitor *visitor);
 void remove_visitor_from_queue(struct visitor **head, char visitor_name[MAX_SIZE]);
+void transfer_visitor_queue(struct visitor **remove_head,
+    struct visitor **add_head, char action, struct validate_fields fields);
 
 void count_total_visitors(struct park *park);
 void count_queue_visitors(struct park *park);

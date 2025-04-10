@@ -264,25 +264,25 @@ void insert_ride(struct park *park) {
         printf("ERROR: a ride with name: ");
         printf("'%s' already exists in this park.\n", name);
         return;
-    } else {
-        struct ride *new_ride = create_ride(name, type);
-        if (park->rides == NULL) {
-            park->rides = new_ride;
-        } else if (index == 1) {
-            new_ride->next = park->rides;
-            park->rides = new_ride;
-        } else {
-            struct ride *current = park->rides;
-            int i = 1;
-            while (current->next != NULL && i < index - 1) {
-                current = current->next;
-                i++;
-            }
-            new_ride->next = current->next;
-            current->next = new_ride;
-        }
-        printf("Ride: '%s' inserted!\n", name);
     }
+
+    struct ride *new_ride = create_ride(name, type);
+    if (park->rides == NULL) {
+        park->rides = new_ride;
+    } else if (index == 1) {
+        new_ride->next = park->rides;
+        park->rides = new_ride;
+    } else {
+        struct ride *current = park->rides;
+        int i = 1;
+        while (current->next != NULL && i < index - 1) {
+            current = current->next;
+            i++;
+        }
+        new_ride->next = current->next;
+        current->next = new_ride;
+    }
+    printf("Ride: '%s' inserted!\n", name);
 }
 
 // Adds a visitor to the queue of a specific ride
@@ -299,10 +299,8 @@ void add_visitor_to_ride(struct park *park) {
         return;
     }
 
-    remove_visitor_from_queue(&(park->visitors), fields.v_name);
-    add_visitor_to_queue(&(fields.ride->queue), fields.visitor);
-    printf("Visitor: '%s' has entered the queue for '%s'.\n",
-        fields.v_name, fields.r_name);
+    transfer_visitor_queue(&(park->visitors),
+        &(fields.ride->queue), ADD_V_TO_R, fields);
 }
 
 // Removes a visitor from the queue of a specific ride and
@@ -323,10 +321,8 @@ void remove_visitor_from_ride(struct park *park) {
         return;
     }
 
-    remove_visitor_from_queue(&(fields.ride->queue), fields.v_name);
-    add_visitor_to_queue(&(park->visitors), fields.visitor);
-    printf("Visitor: '%s' has been removed ", fields.v_name);
-    printf("from their ride queue and is now roaming the park.\n");
+    transfer_visitor_queue(&(fields.ride->queue),
+        &(park->visitors), REMOVE_V_FROM_R, fields);
 }
 
 // Moves a visitor to a different ride's queue
@@ -347,10 +343,8 @@ void move_visitor_to_different_ride(struct park *park) {
     if (fields.ride == NULL) {
         if (retrieve_visitor(park->visitors, fields.v_name) != NULL) {
             fields.visitor = retrieve_visitor(park->visitors, fields.v_name);
-            remove_visitor_from_queue(&(park->visitors), fields.v_name);
-            add_visitor_to_queue(&(fields.target_ride->queue), fields.visitor);
-            printf("Visitor: '%s' has been moved to the queue for '%s'.\n",
-                fields.v_name, fields.target_ride->name);
+            transfer_visitor_queue(&(park->visitors),
+                &(fields.target_ride->queue), MOVE_V_TO_R, fields);
         } else {
             printf("ERROR: No ride exists with name '%s'.\n", fields.r_name);
         }
@@ -363,10 +357,8 @@ void move_visitor_to_different_ride(struct park *park) {
         return;
     }
 
-    remove_visitor_from_queue(&(fields.ride->queue), fields.v_name);
-    add_visitor_to_queue(&(fields.target_ride->queue), fields.visitor);
-    printf("Visitor: '%s' has been moved to the queue for '%s'.\n",
-        fields.v_name, fields.target_ride->name);
+    transfer_visitor_queue(&(fields.ride->queue),
+        &(fields.target_ride->queue), MOVE_V_TO_R, fields);
 }
 
 // Handles validation of actions
@@ -461,6 +453,25 @@ void remove_visitor_from_queue(struct visitor **head, char name[MAX_SIZE]) {
         }
         previous = current;
         current = current->next;
+    }
+}
+
+// Handles the transfer of visitors from one queue to another
+void transfer_visitor_queue(struct visitor **remove_head,
+    struct visitor **add_head, char action, struct validate_fields fields) {
+
+    remove_visitor_from_queue(remove_head, fields.v_name);
+    add_visitor_to_queue(add_head, fields.visitor);
+
+    if (action == ADD_V_TO_R) {
+        printf("Visitor: '%s' has entered the queue for '%s'.\n",
+            fields.v_name, fields.r_name);
+    } else if (action == REMOVE_V_FROM_R) {
+        printf("Visitor: '%s' has been removed ", fields.v_name);
+        printf("from their ride queue and is now roaming the park.\n");
+    } else if (action == MOVE_V_TO_R) {
+        printf("Visitor: '%s' has been moved to the queue for '%s'.\n",
+            fields.v_name, fields.target_ride->name);
     }
 }
 
