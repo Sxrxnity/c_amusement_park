@@ -66,21 +66,21 @@ struct ride *create_ride(char name[MAX_SIZE], enum ride_type type) {
     strcpy(new_ride->name, name);
     new_ride->type = type;
     if (type == ROLLER_COASTER) {
-        new_ride->rider_capacity = 4;
-        new_ride->queue_capacity = 7;
-        new_ride->min_height = 120.0;
+        new_ride->rider_capacity = RC_RIDER_CAPACITY;
+        new_ride->queue_capacity = RC_QUEUE_CAPACITY;
+        new_ride->min_height = RC_MIN_HEIGHT;
     } else if (type == CAROUSEL) {
-        new_ride->rider_capacity = 6;
-        new_ride->queue_capacity = 9;
-        new_ride->min_height = 60.0;
+        new_ride->rider_capacity = CAROUSEL_RIDER_CAPACITY;
+        new_ride->queue_capacity = CAROUSEL_QUEUE_CAPACITY;
+        new_ride->min_height = CAROUSEL_MIN_HEIGHT;
     } else if (type == FERRIS_WHEEL) {
-        new_ride->rider_capacity = 8;
-        new_ride->queue_capacity = 11;
-        new_ride->min_height = 75.0;
+        new_ride->rider_capacity = FW_RIDER_CAPACITY;
+        new_ride->queue_capacity = FW_QUEUE_CAPACITY;
+        new_ride->min_height = FW_MIN_HEIGHT;
     } else if (type == BUMPER_CARS) {
-        new_ride->rider_capacity = 10;
-        new_ride->queue_capacity = 13;
-        new_ride->min_height = 100.0;
+        new_ride->rider_capacity = BC_RIDER_CAPACITY;
+        new_ride->queue_capacity = BC_QUEUE_CAPACITY;
+        new_ride->min_height = BC_MIN_HEIGHT;
     }
     new_ride->queue = NULL;
     new_ride->next = NULL;

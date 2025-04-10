@@ -11,12 +11,28 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Your constants
 ////////////////////////////////////////////////////////////////////////////////
-#define FALSE 0
-#define TRUE 1
+#define FALSE                   0
+#define TRUE                    1
 
 #define MIN_VISITOR_HEIGHT      50
 #define MAX_VISITOR_HEIGHT      250
 #define MAX_VISITORS            40
+
+#define RC_RIDER_CAPACITY       4
+#define RC_QUEUE_CAPACITY       7
+#define RC_MIN_HEIGHT           120.0
+
+#define CAROUSEL_RIDER_CAPACITY 6
+#define CAROUSEL_QUEUE_CAPACITY 9
+#define CAROUSEL_MIN_HEIGHT     60.0
+
+#define FW_RIDER_CAPACITY       8
+#define FW_QUEUE_CAPACITY       11
+#define FW_MIN_HEIGHT           75.0
+
+#define BC_RIDER_CAPACITY       10
+#define BC_QUEUE_CAPACITY       13
+#define BC_MIN_HEIGHT           100.0
 
 #define HELP                    '?'
 #define APPEND                  'a'
