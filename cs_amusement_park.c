@@ -113,11 +113,16 @@ void command_loop(struct park *park) {
             count_total_visitors(park);
         } else if (command == COUNT_QUEUE_VISITORS) {
             count_queue_visitors(park);
+        } else if (command == QUIT) {
+            end_of_day_procedure(park);
+        } else if (command == VISITOR_LEAVE) {
+            free_one_visitor(park);
         } else if (command == PRINT) {
             print_park(park);
         }
         printf("Enter command: ");
     }
+    end_of_day_procedure(park);
 }
 
 // Adds either a ride or visitor to the park
@@ -549,6 +554,58 @@ void count_queue_visitors(struct park *park) {
 // BEGIN STAGE 3
 ////////////////////////////////////////////////////////////////////////////////
 
+// Frees all rides and visitors
+void end_of_day_procedure(struct park *park) {
+
+    free_visitors_from_queue(park->visitors);
+    struct ride *current_ride = park->rides;
+    while (current_ride != NULL) {
+        struct ride *next_ride = current_ride->next;
+        free_visitors_from_queue(current_ride->queue);
+        free(current_ride);
+        current_ride = next_ride;
+    }
+    free(park);
+
+    printf("\nGoodbye!\n");
+    exit(0);
+}
+
+// Frees all visitors from a ride
+void free_visitors_from_queue(struct visitor *head) {
+    struct visitor *current = head;
+    while (current != NULL) {
+        struct visitor *next = current->next;
+        free(current);
+        current = next;
+    }
+}
+
+// Frees a single visitor
+void free_one_visitor(struct park *park) {
+    char name[MAX_SIZE];
+    scan_name(name);
+    struct visitor *visitor = NULL;
+
+    struct ride *ride = find_ride_containing(park, name);
+    if (ride == NULL) {
+        if (retrieve_visitor(park->visitors, name) == NULL) {
+            printf("ERROR: Visitor '%s' not found in the park.\n", name);
+            return;
+        } else {
+            visitor = retrieve_visitor(park->visitors, name);
+            remove_visitor_from_queue(&(park->visitors), name);
+        }
+    } else {
+        visitor = retrieve_visitor(ride->queue, name);
+        remove_visitor_from_queue(&(ride->queue), name);
+    }
+
+    free(visitor);
+    park->total_visitors--;
+    printf("Visitor: '%s' has left the park.\n", name);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // END STAGE 3
 ////////////////////////////////////////////////////////////////////////////////
@@ -561,16 +618,6 @@ void count_queue_visitors(struct park *park) {
 
 ////////////////////////////////////////////////////////////////////////////////
 // END STAGE 4
-////////////////////////////////////////////////////////////////////////////////
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-// BEGIN STAGE 5
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
-// END STAGE 5
 ////////////////////////////////////////////////////////////////////////////////
 
 

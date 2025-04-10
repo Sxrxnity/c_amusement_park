@@ -14,6 +14,10 @@
 #define FALSE 0
 #define TRUE 1
 
+#define MIN_VISITOR_HEIGHT      50
+#define MAX_VISITOR_HEIGHT      250
+#define MAX_VISITORS            40
+
 #define HELP                    '?'
 #define APPEND                  'a'
 #define INSERT                  'i'
@@ -26,10 +30,10 @@
 #define COUNT_QUEUE_VISITORS    'c'
 #define PRINT                   'p'
 
-#define MIN_VISITOR_HEIGHT      50
-#define MAX_VISITOR_HEIGHT      250
+#define QUIT                    'q'
+#define VISITOR_LEAVE           'l'
 
-#define MAX_VISITORS            40
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Provided Enums
@@ -143,9 +147,12 @@ void count_queue_visitors(struct park *park);
 
 // Stage 3
 
+void end_of_day_procedure(struct park *park);
+void free_visitors_from_queue(struct visitor *head);
+void free_one_visitor(struct park *park);
+
 // Stage 4
 
-// Stage 5
 
 // Helper functions
 int is_existing_ride(struct ride *first_ride, char name[MAX_SIZE]);
@@ -160,5 +167,3 @@ struct ride *retrieve_ride(struct ride *head, char name[MAX_SIZE]);
 struct visitor *retrieve_visitor(struct visitor *head, char name[MAX_SIZE]);
 struct ride *find_ride_containing(struct park *park, char v_name[MAX_SIZE]);
 int calculate_list_length(struct visitor *visitor);
-
-
