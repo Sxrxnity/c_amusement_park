@@ -21,18 +21,16 @@
 #define RC_RIDER_CAPACITY       4
 #define RC_QUEUE_CAPACITY       7
 #define RC_MIN_HEIGHT           120.0
-
 #define CAROUSEL_RIDER_CAPACITY 6
 #define CAROUSEL_QUEUE_CAPACITY 9
 #define CAROUSEL_MIN_HEIGHT     60.0
-
 #define FW_RIDER_CAPACITY       8
 #define FW_QUEUE_CAPACITY       11
 #define FW_MIN_HEIGHT           75.0
-
 #define BC_RIDER_CAPACITY       10
 #define BC_QUEUE_CAPACITY       13
 #define BC_MIN_HEIGHT           100.0
+#define MAX_QUEUE_LENGTH        15
 
 #define HELP                    '?'
 #define APPEND                  'a'
@@ -50,6 +48,12 @@
 #define VISITOR_LEAVE           'l'
 #define OPERATE_RIDES           'r'
 #define SHUT_DOWN_RIDE          'S'
+
+#define MERGE                   'M'
+#define SPLIT                   's'
+#define SCHEDULE_EVENT          'T'
+#define ADVANCE_TICKS           '~'
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -177,6 +181,8 @@ int calculate_ride_type_vacancy(struct ride *head,
     enum ride_type type, char ride_name[MAX_SIZE]);
 
 // Stage 4
+void merge_rides(struct park *park);
+void merge_ride_queues(struct ride *first_ride, struct ride *second_ride);
 
 
 // Helper functions
@@ -192,3 +198,9 @@ struct ride *retrieve_ride(struct ride *head, char name[MAX_SIZE]);
 struct visitor *retrieve_visitor(struct visitor *head, char name[MAX_SIZE]);
 struct ride *find_ride_containing(struct park *park, char v_name[MAX_SIZE]);
 int calculate_list_length(struct visitor *visitor);
+
+int calculate_type_count(struct park *park, enum ride_type type);
+struct ride *find_shortest_queue(struct park *park, enum ride_type type);
+struct ride *find_second_shortest_queue(struct park *park,
+    enum ride_type type, struct ride *ride_to_skip);
+int is_closer_to_head(struct ride *head, struct ride *ride1, struct ride *ride2);

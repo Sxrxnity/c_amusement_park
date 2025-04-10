@@ -121,6 +121,14 @@ void command_loop(struct park *park) {
             operate_all_rides(park, park->rides);
         } else if (command == SHUT_DOWN_RIDE) {
             shut_down_ride(park);
+        } else if (command == MERGE) {
+            merge_rides(park);
+        } else if (command == SPLIT) {
+
+        } else if (command == SCHEDULE_EVENT) {
+
+        } else if (command == ADVANCE_TICKS) {
+
         } else if (command == PRINT) {
             print_park(park);
         }
@@ -660,6 +668,7 @@ void shut_down_ride(struct park *park) {
     }
 
     free_ride(park, &(fields));
+    printf("Ride: '%s' shut down.\n", fields.r_name);
 }
 
 // Validates the shutdown of a ride
@@ -669,6 +678,8 @@ int validate_sdr(struct park *park, struct validate_fields *fields) {
         return FALSE;
     } else if (fields->ride->queue == NULL) {
         free_ride(park, fields);
+        printf("Ride: '%s' shut down.\n", fields->r_name);
+        return FALSE;
     } else {
         int stranded_visitors = calculate_list_length(fields->ride->queue);
         int space_in_ride_type = calculate_ride_type_vacancy(
@@ -677,6 +688,7 @@ int validate_sdr(struct park *park, struct validate_fields *fields) {
             printf("ERROR: Not enough capacity to redistribute ");
             printf("all visitors from '%s'.\n", fields->r_name);
             free_ride(park, fields);
+            printf("Ride: '%s' shut down.\n", fields->r_name);
             return FALSE;
         }
     }
@@ -697,7 +709,6 @@ void free_ride(struct park *park, struct validate_fields *fields) {
                 previous->next = current->next;
             }
             free(current);
-            printf("Ride: '%s' shut down.\n", fields->r_name);
             break;
         }
         previous = current;
@@ -740,6 +751,65 @@ int calculate_ride_type_vacancy(struct ride *head,
 ////////////////////////////////////////////////////////////////////////////////
 // BEGIN STAGE 4
 ////////////////////////////////////////////////////////////////////////////////
+
+// Merges 2 rides of the same type
+void merge_rides(struct park *park) {
+    enum ride_type type = scan_type();
+
+    if (calculate_type_count(park, type) < 2) {
+        printf("ERROR: Not enough rides of the specified type to merge.\n");
+        return;
+    }
+
+    struct ride *first_ride = find_shortest_queue(park, type);
+    struct ride *second_ride = find_second_shortest_queue(park, type,
+        first_ride);
+
+    // Checks which ride is closer to the head of the list and swaps accordingly
+    if (!is_closer_to_head(park->rides, first_ride, second_ride)) {
+        struct ride *temp = first_ride;
+        first_ride = second_ride;
+        second_ride = temp;
+    }
+
+    first_ride->rider_capacity *= 2;
+    first_ride->queue_capacity *= 2;
+
+    merge_ride_queues(first_ride, second_ride);
+
+    struct validate_fields fields;
+    fields.ride = second_ride;
+    free_ride(park, &fields);
+    printf("Merged the two smallest rides of type '%s'.\n",
+        type_to_string(type));
+}
+
+// Merges the queues of two rides
+void merge_ride_queues(struct ride *first_ride, struct ride *second_ride) {
+    struct visitor *queue1 = first_ride->queue;
+    struct visitor *queue2 = second_ride->queue;
+    struct visitor *merged_queue = NULL;
+    struct visitor **tail = &merged_queue;
+
+    while (queue1 != NULL && queue2 != NULL) {
+        *tail = queue1;
+        queue1 = queue1->next;
+        tail = &((*tail)->next);
+
+        *tail = queue2;
+        queue2 = queue2->next;
+        tail = &((*tail)->next);
+    }
+
+    if (queue1 != NULL) {
+        *tail = queue1;
+    } else if (queue2 != NULL) {
+        *tail = queue2;
+    }
+
+    first_ride->queue = merged_queue;
+    second_ride->queue = NULL;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // END STAGE 4
@@ -866,6 +936,76 @@ int calculate_list_length(struct visitor *visitor) {
         current = current->next;
     }
     return length;
+}
+
+// Calculates the amount of rides of a certain type
+int calculate_type_count(struct park *park, enum ride_type type) {
+    int type_count = 0;
+
+    struct ride *current = park->rides;
+    while (current != NULL) {
+        if (current->type == type) {
+            type_count++;
+        }
+        current = current->next;
+    }
+    return type_count;
+}
+
+// Finds the ride with the shortest queue of a certain type
+struct ride *find_shortest_queue(struct park *park, enum ride_type type) {
+    struct ride *current = park->rides;
+    struct ride *shortest_ride = NULL;
+    int shortest_length = MAX_QUEUE_LENGTH;
+
+    while (current != NULL) {
+        if (current->type == type) {
+            int queue_length = calculate_list_length(current->queue);
+            if (queue_length < shortest_length) {
+                shortest_length = queue_length;
+                shortest_ride = current;
+            }
+        }
+        current = current->next;
+    }
+    return shortest_ride;
+}
+
+// Finds the second shortest queue of a certain type
+struct ride *find_second_shortest_queue(struct park *park,
+    enum ride_type type, struct ride *ride_to_skip) {
+    struct ride *current = park->rides;
+    struct ride *second_shortest_ride = NULL;
+    int shortest_length = MAX_QUEUE_LENGTH;
+
+    while (current != NULL) {
+        if (current->type == type && current != ride_to_skip) {
+            int queue_length = calculate_list_length(current->queue);
+            if (queue_length < shortest_length) {
+                shortest_length = queue_length;
+                second_shortest_ride = current;
+            }
+        }
+        current = current->next;
+    }
+    return second_shortest_ride;
+}
+
+// Determines if ride1 is closer to the head of the list than ride2
+int is_closer_to_head(struct ride *head,
+    struct ride *ride1, struct ride *ride2) {
+    struct ride *current = head;
+
+    while (current != NULL) {
+        if (current == ride1) {
+            return 1;
+        }
+        if (current == ride2) {
+            return 0;
+        }
+        current = current->next;
+    }
+    return -1;
 }
 
 
