@@ -32,7 +32,8 @@
 
 #define QUIT                    'q'
 #define VISITOR_LEAVE           'l'
-
+#define OPERATE_RIDES           'r'
+#define SHUT_DOWN_RIDE          'S'
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -146,10 +147,18 @@ void count_total_visitors(struct park *park);
 void count_queue_visitors(struct park *park);
 
 // Stage 3
-
 void end_of_day_procedure(struct park *park);
 void free_visitors_from_queue(struct visitor *head);
 void free_one_visitor(struct park *park);
+
+void operate_all_rides(struct park *park, struct ride *ride);
+void operate_ride(struct park *park, struct ride *ride);
+void shut_down_ride(struct park *park);
+int validate_sdr(struct park *park, struct validate_fields *fields);
+void free_ride(struct park *park, struct validate_fields *fields);
+void send_visitors_to_roaming(struct park *park, struct ride *ride);
+int calculate_ride_type_vacancy(struct ride *head,
+    enum ride_type type, char ride_name[MAX_SIZE]);
 
 // Stage 4
 

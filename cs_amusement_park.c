@@ -33,12 +33,12 @@
 //      name - the name of the park
 // Returns: a pointer to the park
 struct park *initialise_park(char name[MAX_SIZE]) {
-    struct park *new_park = malloc(sizeof(struct park));
-    strcpy(new_park->name, name);
-    new_park->total_visitors = 0;
-    new_park->rides = NULL;
-    new_park->visitors = NULL;
-    return new_park;
+    struct park *park = malloc(sizeof(struct park));
+    strcpy(park->name, name);
+    park->total_visitors = 0;
+    park->rides = NULL;
+    park->visitors = NULL;
+    return park;
 }
 
 // Stage 1.1
@@ -117,6 +117,10 @@ void command_loop(struct park *park) {
             end_of_day_procedure(park);
         } else if (command == VISITOR_LEAVE) {
             free_one_visitor(park);
+        } else if (command == OPERATE_RIDES) {
+            operate_all_rides(park, park->rides);
+        } else if (command == SHUT_DOWN_RIDE) {
+            shut_down_ride(park);
         } else if (command == PRINT) {
             print_park(park);
         }
@@ -375,6 +379,8 @@ int validate_action(struct park *park, char action,
         valid = validate_avtr(fields);
     } else if (action == MOVE_V_TO_R) {
         valid = validate_mvtdr(fields);
+    } else if (action == SHUT_DOWN_RIDE) {
+        valid = validate_sdr(park, fields);
     }
     return valid;
 }
@@ -556,8 +562,8 @@ void count_queue_visitors(struct park *park) {
 
 // Frees all rides and visitors
 void end_of_day_procedure(struct park *park) {
-
     free_visitors_from_queue(park->visitors);
+
     struct ride *current_ride = park->rides;
     while (current_ride != NULL) {
         struct ride *next_ride = current_ride->next;
@@ -604,6 +610,133 @@ void free_one_visitor(struct park *park) {
     free(visitor);
     park->total_visitors--;
     printf("Visitor: '%s' has left the park.\n", name);
+}
+
+// Handles operation of all rides in the park
+void operate_all_rides(struct park *park, struct ride *ride) {
+    if (ride == NULL) {
+        return;
+    }
+    operate_all_rides(park, ride->next);
+    operate_ride(park, ride);
+}
+
+// Operates a single ride
+void operate_ride(struct park *park, struct ride *ride) {
+    for (int i = 0; i < ride->rider_capacity; i++) {
+        if (ride->queue == NULL) {
+            return;
+        }
+        add_visitor_to_queue(&(park->visitors), ride->queue);
+        remove_visitor_from_queue(&(ride->queue), ride->queue->name);
+    }
+}
+
+// Shuts down a ride
+void shut_down_ride(struct park *park) {
+    struct validate_fields fields;
+    scan_name(fields.r_name);
+
+    fields.ride = retrieve_ride(park->rides, fields.r_name);
+
+    int valid = validate_action(park, SHUT_DOWN_RIDE, &fields);
+    if (!valid) {
+        return;
+    }
+
+    struct ride *current = park->rides;
+    while (current != NULL) {
+        if (current == fields.ride && current == park->rides) {
+        } else if (current->type == fields.ride->type) {
+            while (current->queue_capacity > calculate_list_length(
+                current->queue) && fields.ride->queue != NULL) {
+                struct visitor *visitor = fields.ride->queue;
+                add_visitor_to_queue(&(current->queue), fields.ride->queue);
+                remove_visitor_from_queue(&(fields.ride->queue),
+                    visitor->name);
+            }
+        }
+        current = current->next;
+    }
+
+    free_ride(park, &(fields));
+}
+
+// Validates the shutdown of a ride
+int validate_sdr(struct park *park, struct validate_fields *fields) {
+    if (fields->ride == NULL) {
+        printf("ERROR: No ride exists with name: '%s'.\n", fields->r_name);
+        return FALSE;
+    } else if (fields->ride->queue == NULL) {
+        free_ride(park, fields);
+    } else {
+        int stranded_visitors = calculate_list_length(fields->ride->queue);
+        int space_in_ride_type = calculate_ride_type_vacancy(
+            park->rides, fields->ride->type, fields->r_name);
+        if (stranded_visitors > space_in_ride_type) {
+            printf("ERROR: Not enough capacity to redistribute ");
+            printf("all visitors from '%s'.\n", fields->r_name);
+            free_ride(park, fields);
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+// Frees a ride and sends the visitors in the ride back to roaming
+void free_ride(struct park *park, struct validate_fields *fields) {
+    struct ride *previous = NULL;
+    struct ride *current = park->rides;
+
+    while (current != NULL) {
+        if (current == fields->ride) {
+            send_visitors_to_roaming(park, fields->ride);
+            if (previous == NULL) {
+                park->rides = current->next;
+            } else {
+                previous->next = current->next;
+            }
+            free(current);
+            printf("Ride: '%s' shut down.\n", fields->r_name);
+            break;
+        }
+        previous = current;
+        current = current->next;
+    }
+}
+
+// Sends all visitors from a certain ride back to roaming
+void send_visitors_to_roaming(struct park *park, struct ride *ride) {
+    struct ride *current = park->rides;
+
+    while (current != NULL) {
+        if (current == ride) {
+            while (current->queue != NULL) {
+                add_visitor_to_queue(&(park->visitors), current->queue);
+                remove_visitor_from_queue(&(current->queue),
+                    current->queue->name);
+            }
+            break;
+        }
+        current = current->next;
+    }
+}
+
+// Calculates the total number of free spots in a type of ride
+int calculate_ride_type_vacancy(struct ride *head,
+    enum ride_type type, char ride_name[MAX_SIZE]) {
+    int vacancy = 0;
+
+    struct ride *current = head;
+    while (current != NULL) {
+        if (strcmp(current->name, ride_name) == 0) {
+        } else if (current->type == type) {
+            vacancy += current->queue_capacity -
+                calculate_list_length(current->queue);
+        }
+        current = current->next;
+    }
+    return vacancy;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
