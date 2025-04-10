@@ -646,7 +646,7 @@ void shut_down_ride(struct park *park) {
 
     struct ride *current = park->rides;
     while (current != NULL) {
-        if (current == fields.ride && current == park->rides) {
+        if (current == fields.ride) {
         } else if (current->type == fields.ride->type) {
             while (current->queue_capacity > calculate_list_length(
                 current->queue) && fields.ride->queue != NULL) {
@@ -707,18 +707,10 @@ void free_ride(struct park *park, struct validate_fields *fields) {
 
 // Sends all visitors from a certain ride back to roaming
 void send_visitors_to_roaming(struct park *park, struct ride *ride) {
-    struct ride *current = park->rides;
 
-    while (current != NULL) {
-        if (current == ride) {
-            while (current->queue != NULL) {
-                add_visitor_to_queue(&(park->visitors), current->queue);
-                remove_visitor_from_queue(&(current->queue),
-                    current->queue->name);
-            }
-            break;
-        }
-        current = current->next;
+    while (ride->queue != NULL) {
+        add_visitor_to_queue(&(park->visitors), ride->queue);
+        remove_visitor_from_queue(&(ride->queue), ride->queue->name);
     }
 }
 
