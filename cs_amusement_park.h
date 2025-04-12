@@ -31,6 +31,7 @@
 #define BC_QUEUE_CAPACITY       13
 #define BC_MIN_HEIGHT           100.0
 #define MAX_QUEUE_LENGTH        15
+#define NEW_NAME_CHARS          2
 
 #define HELP                    '?'
 #define APPEND                  'a'
@@ -183,7 +184,13 @@ int calculate_ride_type_vacancy(struct ride *head,
 // Stage 4
 void merge_rides(struct park *park);
 void merge_ride_queues(struct ride *first_ride, struct ride *second_ride);
-
+void split_ride(struct park *park);
+void generate_unique_split_name(char *ride_name,
+    char *original_name, int name_len, struct ride *ride_list);
+void calculate_number_of_and_add_visitors(struct ride *new_ride,
+    struct ride *ride_to_split, int *remaining_new_rides);
+void insert_split_ride(struct ride **head,
+    struct ride *ride_to_insert_after, struct ride *ride_to_insert);
 
 // Helper functions
 int is_existing_ride(struct ride *first_ride, char name[MAX_SIZE]);

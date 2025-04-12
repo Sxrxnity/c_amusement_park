@@ -124,7 +124,7 @@ void command_loop(struct park *park) {
         } else if (command == MERGE) {
             merge_rides(park);
         } else if (command == SPLIT) {
-
+            split_ride(park);
         } else if (command == SCHEDULE_EVENT) {
 
         } else if (command == ADVANCE_TICKS) {
@@ -809,6 +809,109 @@ void merge_ride_queues(struct ride *first_ride, struct ride *second_ride) {
 
     first_ride->queue = merged_queue;
     second_ride->queue = NULL;
+}
+
+// Splits a ride into n different smaller rides
+void split_ride(struct park *park) {
+    int n_rides;
+    scanf(" %d", &n_rides);
+
+    char ride_name[MAX_SIZE];
+    char base_name[MAX_SIZE];
+    scan_name(ride_name);
+    strcpy(base_name, ride_name);
+
+    struct ride *ride_to_split = retrieve_ride(park->rides, ride_name);
+    if (ride_to_split == NULL) {
+        printf("ERROR: No ride exists with name: '%s'.\n", ride_name);
+        return;
+    } else if (n_rides <= 1) {
+        printf("ERROR: Cannot split '%s' into %d rides. n must be > 1.\n",
+            ride_name, n_rides);
+        return;
+    }
+
+    int name_len = strlen(ride_name);
+    enum ride_type type = ride_to_split->type;
+    int remaining_new_rides = n_rides;
+    struct ride *previous_new_ride = NULL;
+    struct ride *new_ride = NULL;
+
+    for (int i = 1; i <= n_rides; i++) {
+        generate_unique_split_name(ride_name, base_name, name_len, park->rides);
+        new_ride = create_ride(ride_name, type);
+        calculate_number_of_and_add_visitors(new_ride,
+            ride_to_split, &remaining_new_rides);
+
+        if (i == 1) {
+            insert_split_ride(&(park->rides), ride_to_split, new_ride);
+        } else {
+            insert_split_ride(&(park->rides), previous_new_ride, new_ride);
+        }
+        previous_new_ride = new_ride;
+    }
+
+    struct validate_fields fields;
+    fields.ride = ride_to_split;
+    free_ride(park, &fields);
+    printf("Ride '%s' split into %d new rides.\n", base_name, n_rides);
+}
+
+// Generates a unique name
+void generate_unique_split_name(char *ride_name,
+    char *original_name, int name_len, struct ride *ride_list) {
+
+    int suffix = 1;
+    strcpy(ride_name, original_name);
+
+    while (is_existing_ride(ride_list, ride_name)) {
+        if (name_len + NEW_NAME_CHARS >= MAX_SIZE) {
+            ride_name[name_len - 2] = '_';
+            ride_name[name_len - 1] = '0' + suffix;
+        } else {
+            ride_name[name_len] = '_';
+            ride_name[name_len + 1] = '0' + suffix;
+            ride_name[name_len + 2] = '\0';
+        }
+        suffix++;
+    }
+}
+
+// Calculate how many visitors in each ride and add them there
+void calculate_number_of_and_add_visitors(struct ride *new_ride,
+    struct ride *ride_to_split, int *remaining_new_rides) {
+
+    int visitors_in_queue = calculate_list_length(ride_to_split->queue);
+    int base_visitors_per_ride = visitors_in_queue / *remaining_new_rides;
+    int extra_visitors = visitors_in_queue % *remaining_new_rides;
+
+    // Determine the number of visitors for this ride
+    int visitors_for_this_ride = base_visitors_per_ride;
+    if (extra_visitors > 0) {
+        visitors_for_this_ride++;
+    }
+
+    for (int i = 0; i < visitors_for_this_ride; i++) {
+        add_visitor_to_queue(&(new_ride->queue), ride_to_split->queue);
+        remove_visitor_from_queue(&(ride_to_split->queue),
+            ride_to_split->queue->name);
+    }
+
+    (*remaining_new_rides)--;
+}
+
+// Inserts the split ride into the park's rides
+void insert_split_ride(struct ride **head,
+    struct ride *ride_to_insert_after, struct ride *ride_to_insert) {
+
+    struct ride *current = *head;
+    while (current != NULL) {
+        if (current == ride_to_insert_after) {
+            ride_to_insert->next = current->next;
+            current->next = ride_to_insert;
+        }
+        current = current->next;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
