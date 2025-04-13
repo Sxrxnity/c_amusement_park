@@ -52,7 +52,7 @@
 
 #define MERGE                   'M'
 #define SPLIT                   's'
-#define SCHEDULE_EVENT          'T'
+#define SCHEDULE_COMMAND        'T'
 #define ADVANCE_TICKS           '~'
 
 
@@ -76,6 +76,8 @@ struct park {
     struct ride *rides;
     // The list of visitors in the park (this points othe first one)
     struct visitor *visitors;
+    // The list of scheduled instructions to be executed
+    struct scheduled_command *commands;
 };
 
 struct ride {
@@ -113,6 +115,12 @@ struct validate_fields {
     struct visitor *visitor;
     char r_name[MAX_SIZE];
     char v_name[MAX_SIZE];
+};
+
+struct scheduled_command {
+    char instruction[MAX_SIZE];
+    int ticks_until_execution;
+    struct scheduled_command *next;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -184,6 +192,7 @@ int calculate_ride_type_vacancy(struct ride *head,
 // Stage 4
 void merge_rides(struct park *park);
 void merge_ride_queues(struct ride *first_ride, struct ride *second_ride);
+
 void split_ride(struct park *park);
 void generate_unique_split_name(char *ride_name,
     char *original_name, int name_len, struct ride *ride_list);
@@ -191,6 +200,12 @@ void calculate_number_of_and_add_visitors(struct ride *new_ride,
     struct ride *ride_to_split, int *remaining_new_rides);
 void insert_split_ride(struct ride **head,
     struct ride *ride_to_insert_after, struct ride *ride_to_insert);
+
+void schedule_command(struct park *park);
+void move_schedule_forward(struct park *park);
+void tick_forward(struct park *park, int ticks);
+void execute_command(struct park *park, struct scheduled_command *cmd);
+void free_command(struct park *park, struct scheduled_command *cmd);
 
 // Helper functions
 int is_existing_ride(struct ride *first_ride, char name[MAX_SIZE]);

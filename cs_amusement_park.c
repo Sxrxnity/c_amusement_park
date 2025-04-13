@@ -38,6 +38,7 @@ struct park *initialise_park(char name[MAX_SIZE]) {
     park->total_visitors = 0;
     park->rides = NULL;
     park->visitors = NULL;
+    park->commands = NULL;
     return park;
 }
 
@@ -97,6 +98,9 @@ void command_loop(struct park *park) {
     char command;
     printf("Enter command: ");
     while (scanf(" %c", &command) == 1) {
+        if (command != SCHEDULE_COMMAND && command != ADVANCE_TICKS) {
+            tick_forward(park, 1);
+        }
         if (command == HELP) {
             print_usage();
         } else if (command == APPEND) {
@@ -125,10 +129,10 @@ void command_loop(struct park *park) {
             merge_rides(park);
         } else if (command == SPLIT) {
             split_ride(park);
-        } else if (command == SCHEDULE_EVENT) {
-
+        } else if (command == SCHEDULE_COMMAND) {
+            schedule_command(park);
         } else if (command == ADVANCE_TICKS) {
-
+            move_schedule_forward(park);
         } else if (command == PRINT) {
             print_park(park);
         }
@@ -912,6 +916,144 @@ void insert_split_ride(struct ride **head,
         }
         current = current->next;
     }
+}
+
+// Schedule an event for the future
+void schedule_command(struct park *park) {
+
+    char line[MAX_SIZE];
+    char command_str[MAX_SIZE];
+    int ticks;
+    // Read the whole line including ticks and command
+    fgets(line, MAX_SIZE, stdin);
+    // Parse the number of ticks from the start of the line
+    if (sscanf(line, " %d %[^\n]", &ticks, command_str) != 2 || ticks < 1) {
+        printf("ERROR: Invalid tick delay: %d. Must be > 0.\n", ticks);
+        return;
+    }
+
+    struct scheduled_command *cmd = malloc(sizeof(struct scheduled_command));
+    strcpy(cmd->instruction, command_str);
+    cmd->ticks_until_execution = ticks;
+    cmd->next = NULL;
+
+    if (park->commands == NULL) {
+        park->commands = cmd;
+    } else {
+        struct scheduled_command *current = park->commands;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = cmd;
+    }
+    printf("Command scheduled to run in %d ticks.\n", ticks);
+}
+
+// Moves the schedule forward by a certain amount of ticks
+void move_schedule_forward(struct park *park) {
+
+    int ticks;
+    scanf(" %d", &ticks);
+
+    if (ticks < 1) {
+        printf("ERROR: Invalid tick delay: %d. Must be > 0.\n", ticks);
+        return;
+    }
+
+    tick_forward(park, ticks);
+}
+
+// Ticks all scheduled commands forward by x ticks
+void tick_forward(struct park *park, int ticks) {
+
+    for (int i = 1; i <= ticks; i++) {
+        struct scheduled_command *current = park->commands;
+        while (current != NULL) {
+            current->ticks_until_execution--;
+            if (current->ticks_until_execution == 0) {
+                execute_command(park, current);
+                struct scheduled_command *next = current->next;
+                free_command(park, current);
+                current = next;
+            } else {
+                current = current->next;
+            }
+        }
+    }
+}
+
+// Acquires command from command struct and executes it
+void execute_command(struct park *park, struct scheduled_command *cmd) {
+
+    // quit scheduled case
+    if (cmd->instruction[0] == QUIT) {
+        printf("ERROR: Cannot schedule quit command.\n");
+        return;
+    }
+    // Save the original stdin
+    FILE *original_stdin = stdin;
+    // Create a temporary file stream from the command string
+    FILE *temp_stdin = fmemopen(cmd->instruction,
+        strlen(cmd->instruction), "r");
+    // Redirect stdin to the temporary stream
+    stdin = temp_stdin;
+    // Call the command loop or parse the command
+    char command;
+    scanf(" %c", &command);
+    if (command == HELP) {
+        print_usage();
+    } else if (command == APPEND) {
+        add_entity(park);
+    } else if (command == INSERT) {
+        insert_ride(park);
+    } else if (command == ADD_V_TO_R) {
+        add_visitor_to_ride(park);
+    } else if (command == REMOVE_V_FROM_R) {
+        remove_visitor_from_ride(park);
+    } else if (command == MOVE_V_TO_R) {
+        move_visitor_to_different_ride(park);
+    } else if (command == COUNT_TOTAL_VISITORS) {
+        count_total_visitors(park);
+    } else if (command == COUNT_QUEUE_VISITORS) {
+        count_queue_visitors(park);
+    } else if (command == QUIT) {
+        end_of_day_procedure(park);
+    } else if (command == VISITOR_LEAVE) {
+        free_one_visitor(park);
+    } else if (command == OPERATE_RIDES) {
+        operate_all_rides(park, park->rides);
+    } else if (command == SHUT_DOWN_RIDE) {
+        shut_down_ride(park);
+    } else if (command == MERGE) {
+        merge_rides(park);
+    } else if (command == SPLIT) {
+        split_ride(park);
+    } else if (command == PRINT) {
+        print_park(park);
+    }
+    // Restore the original stdin
+    fclose(temp_stdin);
+    stdin = original_stdin;
+}
+
+// Frees the current command from the command list
+void free_command(struct park *park, struct scheduled_command *cmd) {
+
+    if (park->commands == cmd && cmd->next == NULL) {
+        park->commands = NULL;
+    } else if (park->commands == cmd && cmd->next != NULL) {
+        park->commands = cmd->next;
+    } else {
+        struct scheduled_command *current = park->commands;
+        while (current->next != NULL) {
+            if (current->next == cmd) {
+                current->next = cmd->next;
+                break;
+            }
+            current = current->next;
+        }
+    }
+    free(cmd);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
