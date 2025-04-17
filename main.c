@@ -28,7 +28,7 @@ int main(void) {
     );
 
     printf("Enter the name of the park: ");
-    char name[MAX_NAME_SIZE];
+    char name[MAX_SIZE];
     scan_name(name);
     struct park *park = initialise_park(name);
 
