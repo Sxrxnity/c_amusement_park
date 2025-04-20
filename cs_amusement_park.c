@@ -32,7 +32,7 @@
 // Params:
 //      name - the name of the park
 // Returns: a pointer to the park
-struct park *initialise_park(char name[MAX_SIZE]) {
+struct park *initialise_park(char name[MAX_NAME_SIZE]) {
 
     struct park *park = malloc(sizeof(struct park));
     strcpy(park->name, name);
@@ -49,7 +49,7 @@ struct park *initialise_park(char name[MAX_SIZE]) {
 //      name - the name of the visitor
 //      height - the height of the visitor
 // Returns: a pointer to the visitor
-struct visitor *create_visitor(char name[MAX_SIZE], double height) {
+struct visitor *create_visitor(char name[MAX_NAME_SIZE], double height) {
 
     struct visitor *new_visitor = malloc(sizeof(struct visitor));
     strcpy(new_visitor->name, name);
@@ -64,7 +64,7 @@ struct visitor *create_visitor(char name[MAX_SIZE], double height) {
 //      name - the name of the ride
 //      type - the type of the ride
 // Returns: a pointer to the ride
-struct ride *create_ride(char name[MAX_SIZE], enum ride_type type) {
+struct ride *create_ride(char name[MAX_NAME_SIZE], enum ride_type type) {
 
     struct ride *new_ride = malloc(sizeof(struct ride));
     strcpy(new_ride->name, name);
@@ -99,17 +99,44 @@ struct ride *create_ride(char name[MAX_SIZE], enum ride_type type) {
 //     park - a pointer to the park
 // Returns: None
 void command_loop(struct park *park) {
-
+    char line[MAX_COMMAND_SIZE];
     char command;
+    char args[MAX_COMMAND_SIZE];
+    int i;
+
     printf("Enter command: ");
-    while (scanf(" %c", &command) == 1) {
-        if (command != SCHEDULE_COMMAND && command != ADVANCE_TICKS) {
-            tick_forward(park, 1);
-            execute_ticking_instruction(park, command);
-        } else if (command == SCHEDULE_COMMAND) {
-            schedule_command(park);
-        } else if (command == ADVANCE_TICKS) {
-            move_schedule_forward(park);
+    while (fgets(line, MAX_COMMAND_SIZE, stdin) != NULL) {
+        command = '\0';
+        args[0] = '\0';
+
+        i = 0;
+        while (line[i] != '\0' && isspace(line[i])) {
+            i = i + 1;
+        }
+
+        command = line[i];
+        i = i + 1;
+        while (line[i] != '\0' && isspace(line[i])) {
+            i = i + 1;
+        }
+
+        int j = 0;
+        while (line[i] != '\0' && j < MAX_COMMAND_SIZE - 1) {
+            args[j] = line[i];
+            j = j + 1;
+            i = i + 1;
+        }
+        args[j] = '\0';
+
+        if (command != '\0') {
+            if (command == SCHEDULE_COMMAND) {
+                schedule_command(park, args);
+            } else if (command == ADVANCE_TICKS) {
+                move_schedule_forward(park, args);
+            } else {
+                tick_forward(park, 1);
+                execute_ticking_instruction(park, command, args);
+            }
         }
         printf("Enter command: ");
     }
@@ -117,50 +144,54 @@ void command_loop(struct park *park) {
 }
 
 // Executes an instruction that moves the tick forward
-void execute_ticking_instruction(struct park *park, char command) {
+void execute_ticking_instruction(struct park *park,
+    char command, char *args) {
 
     if (command == HELP) {
         print_usage();
     } else if (command == APPEND) {
-        add_entity(park);
+        add_entity(park, args);
     } else if (command == PRINT) {
         print_park(park);
     } else if (command == INSERT) {
-        insert_ride(park);
+        insert_ride(park, args);
     } else if (command == ADD_V_TO_R) {
-        add_visitor_to_ride(park);
+        add_visitor_to_ride(park, args);
     } else if (command == REMOVE_V_FROM_R) {
-        remove_visitor_from_ride(park);
+        remove_visitor_from_ride(park, args);
     } else if (command == MOVE_V_TO_R) {
-        move_visitor_to_different_ride(park);
+        move_visitor_to_different_ride(park, args);
     } else if (command == COUNT_TOTAL_VISITORS) {
         count_total_visitors(park);
     } else if (command == COUNT_QUEUE_VISITORS) {
-        count_queue_visitors(park);
+        count_queue_visitors(park, args);
     } else if (command == QUIT) {
         end_of_day_procedure(park);
     } else if (command == VISITOR_LEAVE) {
-        free_one_visitor(park);
+        free_one_visitor(park, args);
     } else if (command == OPERATE_RIDES) {
         operate_all_rides(park, park->rides);
     } else if (command == SHUT_DOWN_RIDE) {
-        shut_down_ride(park);
+        shut_down_ride(park, args);
     } else if (command == MERGE) {
-        merge_rides(park);
+        merge_rides(park, args);
     } else if (command == SPLIT) {
-        split_ride(park);
+        split_ride(park, args);
     }
 }
 
 // Adds either a ride or visitor to the park
-void add_entity(struct park *park) {
+void add_entity(struct park *park, char *args) {
 
-    char second_command;
-    scanf(" %c", &second_command);
-    if (second_command == RIDE) {
-        append_ride(park);
-    } else if (second_command == VISITOR) {
-        append_visitor(park);
+    char token[MAX_COMMAND_SIZE];
+    int index = 0;
+
+    scan_token_by_index(args, token, MAX_COMMAND_SIZE, index, &index);
+
+    if (token[0] == RIDE) {
+        append_ride(park, args + index);
+    } else if (token[0] == VISITOR) {
+        append_visitor(park, args + index);
     }
 }
 
@@ -169,12 +200,17 @@ void add_entity(struct park *park) {
 // Params:
 //      park - a pointer to the park
 // Returns: None
-void append_ride(struct park *park) {
+void append_ride(struct park *park, char *args) {
 
-    char name[MAX_SIZE];
-    scan_name(name);
+    char name[MAX_NAME_SIZE];
+    char type_str[MAX_NAME_SIZE];
+    int index = 0;
 
-    enum ride_type type = scan_type();
+    scan_token_by_index(args, name, MAX_NAME_SIZE, index, &index);
+    scan_token_by_index(args, type_str, MAX_NAME_SIZE, index, &index);
+
+    enum ride_type type = string_to_type(type_str);
+
     if (is_type_invalid(type) == TRUE) {
         return;
     }
@@ -186,6 +222,7 @@ void append_ride(struct park *park) {
             printf("ERROR: '%s' already exists.\n", name);
             return;
         }
+
         struct ride *current = park->rides;
         while (current->next != NULL) {
             current = current->next;
@@ -200,13 +237,17 @@ void append_ride(struct park *park) {
 // Params:
 //      park - a pointer to the park
 // Returns: None
-void append_visitor(struct park *park) {
+void append_visitor(struct park *park, char *args) {
 
-    char name[MAX_SIZE];
-    scan_name(name);
-
+    char name[MAX_NAME_SIZE];
+    char height_str[MAX_NAME_SIZE];
     double height;
-    scanf(" %lf", &height);
+    int index = 0;
+
+    scan_token_by_index(args, name, MAX_NAME_SIZE, index, &index);
+    scan_token_by_index(args, height_str, MAX_NAME_SIZE, index, &index);
+    height = atof(height_str);
+
     if (visitor_height_valid(height) == FALSE ||
         park_is_full(park->total_visitors) == TRUE) {
         return;
@@ -219,13 +260,13 @@ void append_visitor(struct park *park) {
             printf("ERROR: '%s' already exists.\n", name);
             return;
         }
+
         struct visitor *current = park->visitors;
         while (current->next != NULL) {
             current = current->next;
         }
         current->next = create_visitor(name, height);
     }
-
     printf("Visitor: '%s' has entered the amusement park!\n", name);
     park->total_visitors++;
 }
@@ -281,7 +322,7 @@ void print_park(struct park *park) {
 }
 
 // Checks if a given ride name exists in the park
-int ride_exists(struct ride *first_ride, char name[MAX_SIZE]) {
+int ride_exists(struct ride *first_ride, char name[MAX_NAME_SIZE]) {
     struct ride *current = first_ride;
 
     while (current != NULL) {
@@ -294,7 +335,7 @@ int ride_exists(struct ride *first_ride, char name[MAX_SIZE]) {
 }
 
 // Checks a given visitor name against the list of visitors in the park
-int visitor_exists(struct visitor *first_visitor, char name[MAX_SIZE]) {
+int visitor_exists(struct visitor *first_visitor, char name[MAX_NAME_SIZE]) {
 
     struct visitor *current = first_visitor;
     while (current != NULL) {
@@ -352,35 +393,40 @@ int park_is_full(int total_visitors) {
 ////////////////////////////////////////////////////////////////////////////////
 
 // Inserts a ride at a specific index in the park's ride list
-void insert_ride(struct park *park) {
+void insert_ride(struct park *park, char *args) {
+    char index_str[MAX_NAME_SIZE];
+    char name[MAX_NAME_SIZE];
+    char type_str[MAX_NAME_SIZE];
+    int i = 0;
 
-    int index;
-    scanf(" %d", &index);
-    char name[MAX_SIZE];
-    scan_name(name);
-    enum ride_type type = scan_type();
+    scan_token_by_index(args, index_str, MAX_NAME_SIZE, i, &i);
+    int insert_index = atoi(index_str);
 
-    if (is_valid_index(index) == FALSE ||
+    scan_token_by_index(args, name, MAX_NAME_SIZE, i, &i);
+    scan_token_by_index(args, type_str, MAX_NAME_SIZE, i, &i);
+    enum ride_type type = string_to_type(type_str);
+
+    if (is_valid_index(insert_index) == FALSE ||
         is_type_invalid(type) == TRUE) {
         return;
     } else if (ride_exists(park->rides, name) == TRUE) {
-        printf("ERROR: a ride with name: ");
-        printf("'%s' already exists in this park.\n", name);
+        printf("ERROR: a ride with name: '%s' already exists in this park.\n",
+            name);
         return;
     }
 
     struct ride *new_ride = create_ride(name, type);
     if (park->rides == NULL) {
         park->rides = new_ride;
-    } else if (index == 1) {
+    } else if (insert_index == 1) {
         new_ride->next = park->rides;
         park->rides = new_ride;
     } else {
         struct ride *current = park->rides;
-        int i = 1;
-        while (current->next != NULL && i < index - 1) {
+        int position = 1;
+        while (current->next != NULL && position < insert_index - 1) {
             current = current->next;
-            i++;
+            position = position + 1;
         }
         new_ride->next = current->next;
         current->next = new_ride;
@@ -400,17 +446,19 @@ int is_valid_index(int index) {
 }
 
 // Adds a visitor to the queue of a specific ride
-void add_visitor_to_ride(struct park *park) {
+void add_visitor_to_ride(struct park *park, char *args) {
 
     struct validate_fields fields;
-    scan_name(fields.r_name);
-    scan_name(fields.v_name);
+    int i = 0;
+
+    scan_token_by_index(args, fields.r_name, MAX_NAME_SIZE, i, &i);
+    scan_token_by_index(args, fields.v_name, MAX_NAME_SIZE, i, &i);
 
     fields.ride = retrieve_ride(park->rides, fields.r_name);
     fields.visitor = retrieve_visitor(park->visitors, fields.v_name);
 
     int valid = validate_action(park, ADD_V_TO_R, &fields);
-    if (!valid) {
+    if (valid == FALSE) {
         return;
     }
 
@@ -434,10 +482,11 @@ void add_visitor(struct visitor **head, struct visitor *visitor) {
 
 // Removes a visitor from the queue of a specific ride and
 // puts them back in roaming
-void remove_visitor_from_ride(struct park *park) {
-
+void remove_visitor_from_ride(struct park *park, char *args) {
     struct validate_fields fields;
-    scan_name(fields.v_name);
+    int i = 0;
+
+    scan_token_by_index(args, fields.v_name, MAX_NAME_SIZE, i, &i);
 
     fields.ride = find_ride_containing(park, fields.v_name);
     if (fields.ride == NULL) {
@@ -480,11 +529,13 @@ void remove_visitor(struct visitor **head, struct visitor *visitor) {
 }
 
 // Moves a visitor to a different ride's queue
-void move_visitor_to_different_ride(struct park *park) {
+void move_visitor_to_different_ride(struct park *park, char *args) {
 
     struct validate_fields fields;
-    scan_name(fields.v_name);
-    scan_name(fields.r_name);
+    int i = 0;
+
+    scan_token_by_index(args, fields.v_name, MAX_NAME_SIZE, i, &i);
+    scan_token_by_index(args, fields.r_name, MAX_NAME_SIZE, i, &i);
 
     fields.target_ride = retrieve_ride(park->rides, fields.r_name);
     if (fields.target_ride == NULL) {
@@ -493,16 +544,14 @@ void move_visitor_to_different_ride(struct park *park) {
     }
 
     fields.ride = find_ride_containing(park, fields.v_name);
-    fields.visitor = NULL;
-    // Checks if the visitor is roaming
     if (fields.ride == NULL) {
-        if (retrieve_visitor(park->visitors, fields.v_name) != NULL) {
-            fields.visitor = retrieve_visitor(park->visitors, fields.v_name);
-            transfer_visitor_queue(&(park->visitors),
-                &(fields.target_ride->queue), MOVE_V_TO_R, fields);
-        } else {
+        fields.visitor = retrieve_visitor(park->visitors, fields.v_name);
+        if (fields.visitor == NULL) {
             printf("ERROR: No ride exists with name '%s'.\n", fields.r_name);
+            return;
         }
+        transfer_visitor_queue(&(park->visitors),
+            &(fields.target_ride->queue), MOVE_V_TO_R, fields);
         return;
     }
 
@@ -555,22 +604,25 @@ void count_total_visitors(struct park *park) {
 }
 
 // Counts the number of visitors in the queue between two rides
-void count_queue_visitors(struct park *park) {
+void count_queue_visitors(struct park *park, char *args) {
 
-    char first_ride[MAX_SIZE];
-    char second_ride[MAX_SIZE];
-    char direction;
-    scan_name(first_ride);
-    scan_name(second_ride);
-    scanf(" %c", &direction);
+    char first_ride[MAX_NAME_SIZE];
+    char second_ride[MAX_NAME_SIZE];
+    char direction_str[MAX_NAME_SIZE];
+    int i = 0;
+
+    scan_token_by_index(args, first_ride, MAX_NAME_SIZE, i, &i);
+    scan_token_by_index(args, second_ride, MAX_NAME_SIZE, i, &i);
+    scan_token_by_index(args, direction_str, MAX_NAME_SIZE, i, &i);
+    char direction = direction_str[0];
+
     int count = 0;
-
     struct ride *first = retrieve_ride(park->rides, first_ride);
     struct ride *second = retrieve_ride(park->rides, second_ride);
 
     if (first == NULL || second == NULL) {
-        printf("ERROR: One or both rides do not exist ");
-        printf("('%s' or '%s').\n", first_ride, second_ride);
+        printf("ERROR: One or both rides do not exist ('%s' or '%s').\n",
+            first_ride, second_ride);
         return;
     }
 
@@ -586,7 +638,7 @@ void count_queue_visitors(struct park *park) {
 
     struct ride *current_ride = start;
     while (TRUE) {
-        count += calculate_list_length(current_ride->queue);
+        count = count + calculate_list_length(current_ride->queue);
         if (current_ride == end) {
             break;
         } else if (current_ride->next == NULL) {
@@ -663,7 +715,7 @@ int validate_mvtdr(struct validate_fields *fields) {
 }
 
 // Retrieves the correct ride to add a visitor to
-struct ride *retrieve_ride(struct ride *head, char name[MAX_SIZE]) {
+struct ride *retrieve_ride(struct ride *head, char name[MAX_NAME_SIZE]) {
 
     struct ride *current = head;
     while (current != NULL) {
@@ -676,7 +728,8 @@ struct ride *retrieve_ride(struct ride *head, char name[MAX_SIZE]) {
 }
 
 // Retrieves the correct visitor to add to a ride queue
-struct visitor *retrieve_visitor(struct visitor *head, char name[MAX_SIZE]) {
+struct visitor *retrieve_visitor(struct visitor *head,
+    char name[MAX_NAME_SIZE]) {
 
     struct visitor *current = head;
     while (current != NULL) {
@@ -689,7 +742,8 @@ struct visitor *retrieve_visitor(struct visitor *head, char name[MAX_SIZE]) {
 }
 
 // Finds the ride that contains a specific visitor
-struct ride *find_ride_containing(struct park *park, char v_name[MAX_SIZE]) {
+struct ride *find_ride_containing(struct park *park,
+    char v_name[MAX_NAME_SIZE]) {
 
     struct ride *current_ride = park->rides;
     while (current_ride != NULL) {
@@ -757,13 +811,15 @@ void free_visitors(struct visitor *head) {
 }
 
 // Frees a single visitor from a specific queue
-void free_one_visitor(struct park *park) {
+void free_one_visitor(struct park *park, char *args) {
 
-    char name[MAX_SIZE];
-    scan_name(name);
+    char name[MAX_NAME_SIZE];
+    int i = 0;
+    scan_token_by_index(args, name, MAX_NAME_SIZE, i, &i);
+
     struct visitor *visitor = NULL;
-
     struct ride *ride = find_ride_containing(park, name);
+
     if (ride == NULL) {
         if (retrieve_visitor(park->visitors, name) == NULL) {
             printf("ERROR: Visitor '%s' not found in the park.\n", name);
@@ -778,7 +834,7 @@ void free_one_visitor(struct park *park) {
     }
 
     free(visitor);
-    park->total_visitors--;
+    park->total_visitors = park->total_visitors - 1;
     printf("Visitor: '%s' has left the park.\n", name);
 }
 
@@ -807,23 +863,25 @@ void operate_ride(struct park *park, struct ride *ride) {
 }
 
 // Shuts down a ride
-void shut_down_ride(struct park *park) {
+void shut_down_ride(struct park *park, char *args) {
 
     struct validate_fields fields;
-    scan_name(fields.r_name);
+    int i = 0;
+
+    scan_token_by_index(args, fields.r_name, MAX_NAME_SIZE, i, &i);
 
     fields.ride = retrieve_ride(park->rides, fields.r_name);
     int valid = validate_action(park, SHUT_DOWN_RIDE, &fields);
-    if (!valid) {
+    if (valid == FALSE) {
         return;
     }
-    // Handles movement of visitors
+
     struct ride *current = park->rides;
     while (current != NULL) {
-        if (current == fields.ride) {
-        } else if (current->type == fields.ride->type) {
-            while (current->queue_capacity > calculate_list_length(
-                current->queue) && fields.ride->queue != NULL) {
+        if (current != fields.ride && current->type == fields.ride->type) {
+            while (current->queue_capacity >
+                calculate_list_length(current->queue)
+                && fields.ride->queue != NULL) {
                 fields.visitor = fields.ride->queue;
                 transfer_visitor_queue(&(fields.ride->queue),
                     &(current->queue), SHUT_DOWN_RIDE, fields);
@@ -894,7 +952,7 @@ void send_visitors_to_roaming(struct park *park, struct ride *ride) {
 
 // Calculates the total number of free spots in a type of ride
 int type_vacancy(struct ride *head,
-    enum ride_type type, char ride_name[MAX_SIZE]) {
+    enum ride_type type, char ride_name[MAX_NAME_SIZE]) {
 
     int vacancy = 0;
 
@@ -921,9 +979,14 @@ int type_vacancy(struct ride *head,
 ////////////////////////////////////////////////////////////////////////////////
 
 // Merges 2 rides of the same type
-void merge_rides(struct park *park) {
+void merge_rides(struct park *park, char *args) {
 
-    enum ride_type type = scan_type();
+    char type_str[MAX_NAME_SIZE];
+    int i = 0;
+
+    scan_token_by_index(args, type_str, MAX_NAME_SIZE, i, &i);
+    enum ride_type type = string_to_type(type_str);
+
     if (calculate_type_count(park, type) < 2) {
         printf("ERROR: Not enough rides of the specified type to merge.\n");
         return;
@@ -932,15 +995,16 @@ void merge_rides(struct park *park) {
     struct ride *first_ride = find_shortest_queue(park, type);
     struct ride *second_ride = find_2nd_shortest_queue(park, type, first_ride);
 
-    // Checks which ride is closer to the head of the list and swaps accordingly
     if (!is_closer_to_head(park->rides, first_ride, second_ride)) {
         struct ride *temp = first_ride;
         first_ride = second_ride;
         second_ride = temp;
     }
 
-    first_ride->rider_capacity *= CAPACITY_MULTIPLIER;
-    first_ride->queue_capacity *= CAPACITY_MULTIPLIER;
+    first_ride->rider_capacity =
+        first_ride->rider_capacity * CAPACITY_MULTIPLIER;
+    first_ride->queue_capacity =
+        first_ride->queue_capacity * CAPACITY_MULTIPLIER;
     merge_ride_queues(first_ride, second_ride);
 
     free_ride(park, second_ride);
@@ -970,6 +1034,7 @@ void merge_ride_queues(struct ride *first_ride, struct ride *second_ride) {
     struct visitor *queue2 = second_ride->queue;
     struct visitor *merged_queue = NULL;
     struct visitor **tail = &merged_queue;
+
     // Takes alternate visitors from each queue
     while (queue1 != NULL && queue2 != NULL) {
         *tail = queue1;
@@ -980,6 +1045,7 @@ void merge_ride_queues(struct ride *first_ride, struct ride *second_ride) {
         queue2 = queue2->next;
         tail = &((*tail)->next);
     }
+
     // Adds any remaining visitors to the queue
     if (queue1 != NULL) {
         *tail = queue1;
@@ -1053,14 +1119,18 @@ int is_closer_to_head(struct ride *head,
 }
 
 // Splits a ride into n different smaller rides
-void split_ride(struct park *park) {
+void split_ride(struct park *park, char *args) {
 
     int n_rides;
-    scanf(" %d", &n_rides);
+    char ride_name[MAX_NAME_SIZE];
+    char base_name[MAX_NAME_SIZE];
+    char num_str[MAX_NAME_SIZE];
+    int i = 0;
 
-    char ride_name[MAX_SIZE];
-    char base_name[MAX_SIZE];
-    scan_name(ride_name);
+    scan_token_by_index(args, num_str, MAX_NAME_SIZE, i, &i);
+    scan_token_by_index(args, ride_name, MAX_NAME_SIZE, i, &i);
+
+    n_rides = atoi(num_str);
     strcpy(base_name, ride_name);
 
     struct ride *ride_to_split = retrieve_ride(park->rides, ride_name);
@@ -1078,13 +1148,13 @@ void split_ride(struct park *park) {
     int remaining_new_rides = n_rides;
     struct ride *previous_new_ride = NULL;
     struct ride *new_ride = NULL;
-    // Creates n rides with n unique names, inserts them into the linked list
-    for (int i = 1; i <= n_rides; i++) {
+
+    for (int j = 1; j <= n_rides; j++) {
         make_unique_name(ride_name, base_name, name_len, park->rides);
         new_ride = create_ride(ride_name, type);
         distribute_visitors(new_ride, ride_to_split, &remaining_new_rides);
 
-        if (i == 1) {
+        if (j == 1) {
             insert_split_ride(&(park->rides), ride_to_split, new_ride);
         } else {
             insert_split_ride(&(park->rides), previous_new_ride, new_ride);
@@ -1104,7 +1174,7 @@ void make_unique_name(char *ride_name,
     strcpy(ride_name, original_name);
 
     while (ride_exists(ride_list, ride_name)) {
-        if (name_len + NEW_NAME_CHARS >= MAX_SIZE) {
+        if (name_len + NEW_NAME_CHARS >= MAX_NAME_SIZE) {
             ride_name[name_len - 2] = '_';
             ride_name[name_len - 1] = '0' + suffix;
         } else {
@@ -1152,15 +1222,24 @@ void insert_split_ride(struct ride **head,
 }
 
 // Schedule an event for the future
-void schedule_command(struct park *park) {
+void schedule_command(struct park *park, char *args) {
 
-    char line[MAX_SIZE];
-    char command_str[MAX_SIZE];
-    int ticks;
-    // Read the whole line including ticks and command
-    fgets(line, MAX_SIZE, stdin);
-    // Parse the number of ticks from the start of the line
-    if (sscanf(line, " %d %[^\n]", &ticks, command_str) != 2 || ticks < 1) {
+    char ticks_str[MAX_COMMAND_SIZE];
+    char command_str[MAX_COMMAND_SIZE];
+    int i = 0;
+
+    scan_token_by_index(args, ticks_str, MAX_COMMAND_SIZE, i, &i);
+    int ticks = atoi(ticks_str);
+
+    int j = 0;
+    while (args[i] != '\0' && j < MAX_COMMAND_SIZE - 1) {
+        command_str[j] = args[i];
+        j = j + 1;
+        i = i + 1;
+    }
+    command_str[j] = '\0';
+
+    if (ticks < 1) {
         printf("ERROR: Invalid tick delay: %d. Must be > 0.\n", ticks);
         return;
     }
@@ -1183,14 +1262,19 @@ void schedule_command(struct park *park) {
 }
 
 // Moves the schedule forward by a certain amount of ticks
-void move_schedule_forward(struct park *park) {
+void move_schedule_forward(struct park *park, char *args) {
 
-    int ticks;
-    scanf(" %d", &ticks);
+    char ticks_str[MAX_COMMAND_SIZE];
+    int i = 0;
+
+    scan_token_by_index(args, ticks_str, MAX_COMMAND_SIZE, i, &i);
+    int ticks = atoi(ticks_str);
+
     if (ticks < MIN_TICKS) {
         printf("ERROR: Invalid tick delay: %d. Must be > 0.\n", ticks);
         return;
     }
+
     tick_forward(park, ticks);
 }
 
@@ -1216,25 +1300,33 @@ void tick_forward(struct park *park, int ticks) {
 
 // Acquires command from command struct and executes it
 void execute_command(struct park *park, struct scheduled_command *cmd) {
+    char command = '\0';
+    char args[MAX_COMMAND_SIZE];
+    int i = 0;
 
-    // quit scheduled case
-    if (cmd->instruction[0] == QUIT) {
+    while (cmd->instruction[i] != '\0' && isspace(cmd->instruction[i])) {
+        i = i + 1;
+    }
+    command = cmd->instruction[i];
+    i = i + 1;
+
+    while (cmd->instruction[i] != '\0' && isspace(cmd->instruction[i])) {
+        i = i + 1;
+    }
+    int j = 0;
+    while (cmd->instruction[i] != '\0' && j < MAX_COMMAND_SIZE - 1) {
+        args[j] = cmd->instruction[i];
+        j = j + 1;
+        i = i + 1;
+    }
+    args[j] = '\0';
+
+    if (command == QUIT) {
         printf("ERROR: Cannot schedule quit command.\n");
         return;
     }
-    // Creates a temporary stdin to use cmd string as stdin
-    FILE *original_stdin = stdin;
-    FILE *temp_stdin = fmemopen(cmd->instruction,
-        strlen(cmd->instruction), "r");
-    stdin = temp_stdin;
 
-    char command;
-    scanf(" %c", &command);
-    execute_ticking_instruction(park, command);
-
-    // Restore the original stdin
-    fclose(temp_stdin);
-    stdin = original_stdin;
+    execute_ticking_instruction(park, command, args);
 }
 
 // Frees the current command from the command list
@@ -1255,6 +1347,29 @@ void free_command(struct park *park, struct scheduled_command *cmd) {
         }
     }
     free(cmd);
+}
+
+// Solves the problem of sscanf using %s
+void scan_token_by_index(char *src, char *dest, int max_len,
+    int start_index, int *next_index) {
+    int i = 0;
+    int j = start_index;
+
+    while (src[j] != '\0' && isspace(src[j])) {
+        j++;
+    }
+
+    while (src[j] != '\0' && !isspace(src[j]) && i < max_len - 1) {
+        dest[i] = src[j];
+        i++;
+        j++;
+    }
+
+    dest[i] = '\0';
+
+    if (next_index != NULL) {
+        *next_index = j;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1329,7 +1444,7 @@ void print_usage(void) {
 // ```
 //      print_welcome_message(name);
 // ```
-void print_welcome_message(char name[MAX_SIZE]) {
+void print_welcome_message(char name[MAX_NAME_SIZE]) {
     printf("===================[ %s ]===================\n", name);
 }
 
@@ -1368,16 +1483,16 @@ void print_visitor(struct visitor *visitor) {
 // '\0' at the end.
 //
 // Params:
-//      name - a char array of length MAX_SIZE, which will be used
+//      name - a char array of length MAX_NAME_SIZE, which will be used
 //                  to store the name.
 // Returns: None
 // Usage:
 // ```
-//      char name[MAX_SIZE];
+//      char name[MAX_NAME_SIZE];
 //      scan_name(name);
 // ```
-void scan_name(char name[MAX_SIZE]) {
-    scan_token(name, MAX_SIZE);
+void scan_name(char name[MAX_NAME_SIZE]) {
+    scan_token(name, MAX_NAME_SIZE);
 }
 
 // Scans a string and converts it to a ride_type.
@@ -1393,8 +1508,8 @@ void scan_name(char name[MAX_SIZE]) {
 // ```
 //
 enum ride_type scan_type(void) {
-    char type[MAX_SIZE];
-    scan_token(type, MAX_SIZE);
+    char type[MAX_NAME_SIZE];
+    scan_token(type, MAX_NAME_SIZE);
     return string_to_type(type);
 }
 
