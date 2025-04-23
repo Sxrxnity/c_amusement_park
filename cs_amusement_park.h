@@ -249,8 +249,6 @@ void merge_ride_queues(struct ride *first_ride, struct ride *second_ride);
 struct ride *find_shortest_queue(struct park *park, enum ride_type type);
 struct ride *find_2nd_shortest_queue(struct park *park,
     enum ride_type type, struct ride *ride_to_skip);
-int is_closer_to_head(struct ride *head,
-    struct ride *ride1, struct ride *ride2);
 
 // --- Stage 4.2: Split Rides ---
 void split_ride(struct park *park, char *args);

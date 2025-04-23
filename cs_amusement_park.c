@@ -410,8 +410,7 @@ void insert_ride(struct park *park, char *args) {
         is_type_invalid(type) == TRUE) {
         return;
     } else if (ride_exists(park->rides, name) == TRUE) {
-        printf("ERROR: a ride with name: '%s' already exists in this park.\n",
-            name);
+        printf("ERROR: '%s' already exists.\n", name);
         return;
     }
 
@@ -995,12 +994,6 @@ void merge_rides(struct park *park, char *args) {
     struct ride *first_ride = find_shortest_queue(park, type);
     struct ride *second_ride = find_2nd_shortest_queue(park, type, first_ride);
 
-    if (!is_closer_to_head(park->rides, first_ride, second_ride)) {
-        struct ride *temp = first_ride;
-        first_ride = second_ride;
-        second_ride = temp;
-    }
-
     first_ride->rider_capacity =
         first_ride->rider_capacity * CAPACITY_MULTIPLIER;
     first_ride->queue_capacity =
@@ -1030,8 +1023,15 @@ int calculate_type_count(struct park *park, enum ride_type type) {
 // Merges the queues of two rides
 void merge_ride_queues(struct ride *first_ride, struct ride *second_ride) {
 
-    struct visitor *queue1 = first_ride->queue;
-    struct visitor *queue2 = second_ride->queue;
+    struct visitor *queue1;
+    struct visitor *queue2;
+    if (calculate_list_length(first_ride->queue) == calculate_list_length(second_ride->queue)) {
+        queue1 = first_ride->queue;
+        queue2 = second_ride->queue;
+    } else {
+        queue1 = second_ride->queue;
+        queue2 = first_ride->queue;
+    }
     struct visitor *merged_queue = NULL;
     struct visitor **tail = &merged_queue;
 
@@ -1098,25 +1098,6 @@ struct ride *find_2nd_shortest_queue(struct park *park,
     return second_shortest_ride;
 }
 
-// Determines if ride1 is closer to the head of the list than ride2
-int is_closer_to_head(struct ride *head,
-    struct ride *ride1, struct ride *ride2) {
-
-    int ride1_is_closer = FALSE;
-    struct ride *current = head;
-
-    while (current != NULL) {
-        if (current == ride1) {
-            ride1_is_closer = TRUE;
-            break;
-        } else if (current == ride2) {
-            ride1_is_closer = FALSE;
-            break;
-        }
-        current = current->next;
-    }
-    return ride1_is_closer;
-}
 
 // Splits a ride into n different smaller rides
 void split_ride(struct park *park, char *args) {
